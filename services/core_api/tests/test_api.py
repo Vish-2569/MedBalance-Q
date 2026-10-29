@@ -111,9 +111,9 @@ def test_audit_verify(client, seed_data):
     assert "entries" in data
 
 
-def test_custody_scan_501(client):
+def test_custody_scan_requires_fields(client):
     r = client.post("/custody/scan", json={})
-    assert r.status_code == 501
+    assert r.status_code == 422
 
 
 def test_order_not_found(client, seed_data):

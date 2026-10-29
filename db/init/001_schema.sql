@@ -216,12 +216,15 @@ CREATE TABLE transfer_order (
     usable          INTEGER NOT NULL CHECK (usable >= 0),
     score           DOUBLE PRECISION,
     status          TEXT NOT NULL DEFAULT 'proposed'
-                    CHECK (status IN ('proposed','approved','rejected','dispatched','in_transit','delivered','cancelled')),
+                    CHECK (status IN ('proposed','approved','rejected','dispatched','in_transit','received','delivered','consumed','cancelled')),
     temperature_req TEXT NOT NULL DEFAULT 'ambient' CHECK (temperature_req IN ('ambient','cold_chain')),
     vehicle_id      TEXT REFERENCES vehicle(id),
+    qr_token        TEXT,
     approved_by     TEXT,
     approved_at     TIMESTAMPTZ,
     rejected_reason TEXT,
+    dispatched_at   TIMESTAMPTZ,
+    received_at     TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_order_plan ON transfer_order(plan_run_id);
@@ -247,11 +250,13 @@ CREATE INDEX idx_regret_plan ON regret_entry(plan_run_id);
 CREATE TABLE custody_event (
     id              SERIAL PRIMARY KEY,
     order_id        TEXT NOT NULL REFERENCES transfer_order(id),
-    event_type      TEXT NOT NULL CHECK (event_type IN ('created','picked','dispatched','checkpoint','delivered','exception')),
+    event_type      TEXT NOT NULL CHECK (event_type IN ('created','picked','dispatched','checkpoint','delivered','received','consumed','exception')),
     actor           TEXT NOT NULL,
+    qty             INTEGER,
     timestamp       TIMESTAMPTZ NOT NULL,
     location        TEXT,
     temperature_c   DOUBLE PRECISION,
+    deviation       JSONB,
     notes           TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

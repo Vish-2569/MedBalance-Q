@@ -276,9 +276,9 @@ def insert_transfer_order(session: Session, order: dict) -> None:
     session.execute(text(
         "INSERT INTO transfer_order (id, dta_number, plan_run_id, src_facility_id, "
         "dst_facility_id, drug_code, drug_name, batch_no, qty, usable, score, "
-        "status, temperature_req) "
+        "status, temperature_req, qr_token) "
         "VALUES (:id, :dta, :plan, :src, :dst, :drug, :drug_name, :batch, "
-        ":qty, :usable, :score, :status, :temp_req)"
+        ":qty, :usable, :score, :status, :temp_req, :qr_token)"
     ), {
         "id": order["id"],
         "dta": order["dta_number"],
@@ -293,6 +293,7 @@ def insert_transfer_order(session: Session, order: dict) -> None:
         "score": order.get("score"),
         "status": order.get("status", "proposed"),
         "temp_req": order.get("temperature_req", "ambient"),
+        "qr_token": order.get("qr_token"),
     })
 
 
@@ -374,8 +375,8 @@ def reject_order(session: Session, order_id: str, reason: str, now) -> dict | No
 
 def get_custody_events(session: Session, order_id: str) -> list[dict]:
     rows = session.execute(text(
-        "SELECT order_id, event_type, actor, timestamp, location, "
-        "temperature_c, notes FROM custody_event "
+        "SELECT order_id, event_type, actor, qty, timestamp, location, "
+        "temperature_c, deviation, notes FROM custody_event "
         "WHERE order_id = :oid ORDER BY timestamp"
     ), {"oid": order_id}).fetchall()
     return [
@@ -383,9 +384,13 @@ def get_custody_events(session: Session, order_id: str) -> list[dict]:
             "order_id": r.order_id,
             "event_type": r.event_type,
             "actor": r.actor,
+            "qty": r.qty,
             "timestamp": r.timestamp.isoformat() if hasattr(r.timestamp, "isoformat") else str(r.timestamp),
             "location": r.location,
             "temperature_c": float(r.temperature_c) if r.temperature_c is not None else None,
+            "deviation": r.deviation if isinstance(r.deviation, dict) else (
+                __import__("json").loads(r.deviation) if r.deviation else None
+            ),
             "notes": r.notes,
         }
         for r in rows
@@ -431,3 +436,93 @@ def get_provenance(session: Session, order_id: str) -> dict | None:
         "custody": custody,
         "audit": audit,
     }
+
+
+# ── Custody scan helpers ─────────────────────────────────────────
+
+def get_order_with_token(session: Session, order_id: str) -> dict | None:
+    row = session.execute(text(
+        "SELECT id, dta_number, plan_run_id, src_facility_id, dst_facility_id, "
+        "drug_code, drug_name, batch_no, qty, usable, score, status, "
+        "temperature_req, vehicle_id, qr_token, approved_by, approved_at, "
+        "rejected_reason, dispatched_at, received_at, created_at "
+        "FROM transfer_order WHERE id = :id"
+    ), {"id": order_id}).fetchone()
+    if not row:
+        return None
+    d = _order_row_to_dict(row)
+    d["qr_token"] = row.qr_token
+    d["dispatched_at"] = row.dispatched_at.isoformat() if hasattr(row.dispatched_at, "isoformat") and row.dispatched_at else row.dispatched_at
+    d["received_at"] = row.received_at.isoformat() if hasattr(row.received_at, "isoformat") and row.received_at else row.received_at
+    return d
+
+
+def update_order_status(session: Session, order_id: str, status: str, **kwargs) -> None:
+    parts = ["status = :status"]
+    params: dict = {"id": order_id, "status": status}
+    for k, v in kwargs.items():
+        parts.append(f"{k} = :{k}")
+        params[k] = v
+    session.execute(text(
+        f"UPDATE transfer_order SET {', '.join(parts)} WHERE id = :id"
+    ), params)
+
+
+def insert_custody_event(session: Session, event: dict) -> int:
+    dialect = "postgresql" if "postgresql" in str(session.bind.url) else "sqlite"
+    dev_col = "CAST(:deviation AS JSONB)" if dialect == "postgresql" else ":deviation"
+    if dialect == "postgresql":
+        result = session.execute(text(
+            f"INSERT INTO custody_event (order_id, event_type, actor, qty, timestamp, "
+            f"location, temperature_c, deviation, notes) "
+            f"VALUES (:order_id, :event_type, :actor, :qty, :timestamp, "
+            f":location, :temperature_c, {dev_col}, :notes) RETURNING id"
+        ), event)
+        return result.scalar()
+    else:
+        session.execute(text(
+            "INSERT INTO custody_event (order_id, event_type, actor, qty, timestamp, "
+            "location, temperature_c, deviation, notes) "
+            "VALUES (:order_id, :event_type, :actor, :qty, :timestamp, "
+            ":location, :temperature_c, :deviation, :notes)"
+        ), event)
+        return session.execute(text("SELECT last_insert_rowid()")).scalar()
+
+
+def get_last_custody_event(session: Session, order_id: str) -> dict | None:
+    row = session.execute(text(
+        "SELECT event_type, qty, timestamp FROM custody_event "
+        "WHERE order_id = :oid ORDER BY id DESC LIMIT 1"
+    ), {"oid": order_id}).fetchone()
+    if not row:
+        return None
+    return {"event_type": row.event_type, "qty": row.qty, "timestamp": str(row.timestamp)}
+
+
+# ── Admin tamper/restore demo ────────────────────────────────────
+
+def tamper_audit_row(session: Session, seq: int) -> dict:
+    row = session.execute(text(
+        "SELECT seq, payload FROM audit_log WHERE seq = :seq"
+    ), {"seq": seq}).fetchone()
+    if not row:
+        return {"error": "Row not found"}
+
+    original_payload = row.payload if isinstance(row.payload, str) else __import__("json").dumps(row.payload)
+    session.execute(text(
+        "UPDATE audit_log SET payload = :payload WHERE seq = :seq"
+    ), {"seq": seq, "payload": '{"tampered":true,"original_note":"demo tamper"}'})
+    return {"seq": seq, "original_payload": original_payload, "tampered": True}
+
+
+def restore_audit_row(session: Session, seq: int, original_payload: str) -> dict:
+    dialect = "postgresql" if "postgresql" in str(session.bind.url) else "sqlite"
+    if dialect == "postgresql":
+        session.execute(text(
+            "UPDATE audit_log SET payload = CAST(:payload AS JSONB) WHERE seq = :seq"
+        ), {"seq": seq, "payload": original_payload})
+    else:
+        session.execute(text(
+            "UPDATE audit_log SET payload = :payload WHERE seq = :seq"
+        ), {"seq": seq, "payload": original_payload})
+    return {"seq": seq, "restored": True}

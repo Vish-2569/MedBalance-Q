@@ -1,0 +1,24 @@
+{
+  "timestamp": "20261029T194544",
+  "type": "maxcut",
+  "n_nodes": 3,
+  "n_edges": 3,
+  "graph_hash": "0acb205f37a7",
+  "attempts": [
+    {
+      "tier": "exact-brute-force",
+      "time_ms": 0.04,
+      "cut_value": 2.0,
+      "approx_ratio": 1.0,
+      "error": null
+    }
+  ],
+  "winner": {
+    "tier": "exact-brute-force",
+    "cut_value": 2.0,
+    "approx_ratio": 1.0,
+    "time_ms": 0.04,
+    "depth": 0,
+    "shots": 0
+  }
+}

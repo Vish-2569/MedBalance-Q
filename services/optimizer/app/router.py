@@ -21,12 +21,16 @@ from .decompose import decomposed_solve
 from .metrics import compute_metrics
 from .milp import solve_milp
 from .positions import compute_all_positions
+from .regret import compute_regret_from_vars
+from .replan import set_live_plan
 from .scale import generate_scale_snapshot
 from .snapshot import build_snapshot, Snapshot
 from .qubo_builder import build_qubo, QUBOConfig, QUBOResult, energy, term_breakdown
 from .solvers import solve_chain, SolveResult
 from .solvers.greedy_descent import GreedyDescent
 from .validator import apply_plan, ValidatedOrder
+from .whatif import run_whatif
+from .whynot import compute_whynot
 from .zoning import zone_facilities
 
 log = get_logger("optimizer.router")
@@ -39,6 +43,10 @@ CORE_API_URL = "http://core-api:8001"
 _PLAN_SNAPSHOTS: dict[str, tuple[Snapshot, dict[str, str] | None]] = {}
 _PLAN_CANDIDATES: dict[str, list[Candidate]] = {}
 _PLAN_ORDERS: dict[str, list[TransferOrder]] = {}
+_PLAN_QUBO: dict[str, QUBOResult] = {}
+_PLAN_SOLVE: dict[str, SolveResult] = {}
+_PLAN_METRICS: dict[str, Any] = {}
+_LATEST_PLAN_ID: str | None = None
 
 
 class PlanRequest(BaseModel):
@@ -122,19 +130,29 @@ def _run_qubo_pipeline(
         if pos.shortage > 0
     }
 
+    print("[QPI AI OPT] Building QUBO matrix...")
+    log.info("qubo_build_start")
     _publish_progress(plan_id, "qubo_build", "Building QUBO matrix")
     qubo_result = build_qubo(candidates, ven_priority, shortages, config)
 
+    print(f"[QPI AI OPT] QUBO built: {qubo_result.num_variables} variables, {len(qubo_result.Q)} terms")
+    print("[QPI AI OPT] Applying Capacity & Chemistry Penalties...")
+    log.info("qubo_built", n_vars=qubo_result.num_variables, n_terms=len(qubo_result.Q))
+
     if qubo_result.num_variables == 0:
+        print("[QPI AI OPT] QUBO empty — no variables to solve")
         return [], {"solver_tier": "qubo-empty", "energy": None, "n_vars": 0}
 
     _publish_progress(plan_id, "solve", f"Solving QUBO ({qubo_result.num_variables} vars)")
+    print(f"[QPI AI OPT] Solving via solver chain ({qubo_result.num_variables} vars)...")
+    log.info("solve_start", n_vars=qubo_result.num_variables)
     solve_result = solve_chain(
         qubo_result.Q, qubo_result.offset, qubo_result.num_variables,
         top_k=5, timeout=settings.QPIAI_TIMEOUT_S,
     )
 
     if not solve_result.samples:
+        print(f"[QPI AI OPT] Solver Status: FAILED. Error: {solve_result.error}")
         log.warning("qubo_no_solution", error=solve_result.error)
         return [], {
             "solver_tier": solve_result.tier,
@@ -143,6 +161,8 @@ def _run_qubo_pipeline(
         }
 
     best = solve_result.samples[0]
+    print(f"[QPI AI OPT] Solver Status: SUCCESS. Energy: {best.energy:.4f}")
+    log.info("solve_complete", tier=solve_result.tier, energy=round(best.energy, 4), time_ms=round(solve_result.time_ms, 2))
 
     selected_pairs: list[tuple[int, Candidate]] = []
     for var_idx, val in best.x.items():
@@ -151,7 +171,12 @@ def _run_qubo_pipeline(
             selected_pairs.append((ci, candidates[ci]))
 
     _publish_progress(plan_id, "validate", "Validating solution")
+    print(f"[QPI AI OPT] Validating {len(selected_pairs)} orders against FEFO snapshot...")
+    log.info("validate_start", n_selected=len(selected_pairs))
     val_result = apply_plan(snap, selected_pairs)
+
+    print(f"[QPI AI OPT] Validation: {'PASS' if not val_result.violations else 'REPAIRED'} — {len(val_result.violations)} violations, {val_result.trimmed_count} repairs")
+    log.info("validate_complete", violations=len(val_result.violations), trimmed=val_result.trimmed_count, dropped=val_result.dropped_count)
 
     orders: list[TransferOrder] = []
     term_breakdowns: list[dict[str, Any]] = []
@@ -172,11 +197,39 @@ def _run_qubo_pipeline(
             temperature_req="cold_chain" if (drug and drug.cold_chain) else "ambient",
         ))
 
+    print(f"[QPI AI OPT] Orders generated: {len(orders)}, Violations: {len(val_result.violations)}")
+    log.info("orders_generated", count=len(orders), violations=len(val_result.violations))
+
     bd = term_breakdown(
         qubo_result.Q, qubo_result.offset, best.x,
         candidates, qubo_result.variables,
         ven_priority, shortages, qubo_result.config_used, qubo_result.norm_factor,
     )
+
+    # Build var→order_id mapping for regret
+    var_to_order: dict[int, str] = {}
+    order_idx = 0
+    for var_idx, val in best.x.items():
+        if val == 1 and var_idx < len(qubo_result.variables):
+            ci = qubo_result.variables[var_idx]
+            for vo in val_result.orders:
+                if not vo.dropped and vo.candidate_index == ci:
+                    if order_idx < len(orders):
+                        var_to_order[var_idx] = orders[order_idx].id
+                    break
+            order_idx += 1
+
+    regret_ledger = []
+    try:
+        regret_ledger = compute_regret_from_vars(
+            var_to_order, candidates, qubo_result, solve_result, ven_priority,
+        )
+    except Exception as exc:
+        log.warning("regret_computation_failed", error=str(exc))
+
+    # Cache QUBO and solve results
+    _PLAN_QUBO[plan_id] = qubo_result
+    _PLAN_SOLVE[plan_id] = solve_result
 
     solver_meta = {
         "solver_tier": solve_result.tier,
@@ -192,6 +245,7 @@ def _run_qubo_pipeline(
             "p3": config.p3, "gamma": qubo_result.config_used.gamma,
         },
         "attempts": solve_result.meta.get("attempts", []),
+        "regret": [r.to_dict() for r in regret_ledger],
     }
 
     return orders, solver_meta
@@ -201,6 +255,10 @@ def _run_qubo_pipeline(
 async def run_plan(req: PlanRequest):
     plan_id = f"plan-{uuid.uuid4().hex[:8]}"
 
+    print("=" * 60)
+    print("[QPI AI OPT] Received plan request from UI...")
+    log.info("plan_request_received", plan_id=plan_id, mode=req.mode, solver=req.solver)
+
     _publish_progress(plan_id, "snapshot", "Fetching district snapshot")
 
     if req.mode == "eval" and req.scale:
@@ -209,11 +267,17 @@ async def run_plan(req: PlanRequest):
     else:
         snap = _load_snapshot(req.mode)
 
+    print(f"[QPI AI OPT] Facilities: {len(snap.facilities)}, Drugs: {len(snap.drugs)}, Lots: {len(snap.lots)}")
+    log.info("snapshot_loaded", facilities=len(snap.facilities), drugs=len(snap.drugs), lots=len(snap.lots))
+
     _publish_progress(plan_id, "positions", "Computing FEFO positions")
     positions = compute_all_positions(snap)
 
     _publish_progress(plan_id, "candidates", "Generating candidates")
     candidates = generate_candidates(snap, positions)
+
+    print(f"[QPI AI OPT] Candidates: {len(candidates)}")
+    log.info("candidates_generated", count=len(candidates))
 
     solver_meta: dict[str, Any] = {}
 
@@ -270,8 +334,18 @@ async def run_plan(req: PlanRequest):
         _PLAN_SNAPSHOTS[plan_id] = (snap, None)
     _PLAN_CANDIDATES[plan_id] = candidates
     _PLAN_ORDERS[plan_id] = orders
+    _PLAN_METRICS[plan_id] = metrics
+
+    # Register as live plan for auto re-plan
+    global _LATEST_PLAN_ID
+    _LATEST_PLAN_ID = plan_id
+    set_live_plan(plan, orders, snap)
 
     _publish_progress(plan_id, "done", f"{len(orders)} transfers")
+
+    print(f"[QPI AI OPT] Plan complete: {len(orders)} transfers, shortage reduction {metrics.shortage_reduction:.2%}")
+    print("=" * 60)
+    log.info("plan_complete", plan_id=plan_id, transfers=len(orders), shortage_reduction=round(metrics.shortage_reduction, 4))
 
     return {
         "plan": plan,
@@ -441,3 +515,53 @@ async def benchmark_plan(plan_id: str):
         "gap_qubo_to_milp_pct": gap_pct,
         "zoning": zoning_table,
     }
+
+
+# ── Why-not endpoint ──────────────────────────────────────────────
+
+@router.get("/whynot")
+async def whynot_endpoint(facility: str, drug: str):
+    """Explain residual shortage and every candidate that lost."""
+    plan_id = _LATEST_PLAN_ID
+    if not plan_id:
+        return {"error": "No plan has been run yet"}
+
+    snap_entry = _PLAN_SNAPSHOTS.get(plan_id)
+    if not snap_entry:
+        return {"error": f"Plan {plan_id} snapshot not found"}
+    snap, _ = snap_entry
+
+    candidates = _PLAN_CANDIDATES.get(plan_id, [])
+    orders = _PLAN_ORDERS.get(plan_id, [])
+
+    return compute_whynot(facility, drug, snap, candidates, orders)
+
+
+# ── What-if endpoint ──────────────────────────────────────────────
+
+class WhatIfRequest(BaseModel):
+    overrides: list[dict[str, Any]]
+    solver: str = "qubo"
+    plan_id: str | None = None
+
+
+@router.post("/whatif")
+async def whatif_endpoint(req: WhatIfRequest):
+    """Run pipeline on a copied snapshot with overrides. Never persists as live."""
+    pid = req.plan_id or _LATEST_PLAN_ID
+    if not pid:
+        return {"error": "No plan has been run yet"}
+
+    snap_entry = _PLAN_SNAPSHOTS.get(pid)
+    if not snap_entry:
+        return {"error": f"Plan {pid} snapshot not found"}
+    snap, _ = snap_entry
+
+    orders = _PLAN_ORDERS.get(pid, [])
+    metrics = _PLAN_METRICS.get(pid)
+
+    return run_whatif(
+        req.overrides, snap, orders,
+        live_metrics=metrics,
+        solver=req.solver,
+    )

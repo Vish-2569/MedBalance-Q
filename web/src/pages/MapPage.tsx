@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MapContainer, TileLayer, CircleMarker, Polyline, Popup, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { Facility } from '@/types/domain';
 import { stockHealthColor, facilityLabel } from '@/lib/utils';
@@ -14,7 +15,7 @@ export default function MapPage() {
   const [selected, setSelected] = useState<Facility | null>(null);
   const [tilesOk, setTilesOk] = useState(true);
 
-  const { data: facilities = [] } = useQuery({ queryKey: ['facilities'], queryFn: api.getFacilities });
+  const { data: facilities = [], isLoading } = useQuery({ queryKey: ['facilities'], queryFn: api.getFacilities });
   const { data: positions = [] } = useQuery({ queryKey: ['positions'], queryFn: () => api.getPositions() });
   const { data: planDemo } = useQuery({ queryKey: ['plan'], queryFn: api.getPlanDemo });
   const { data: clock } = useQuery({ queryKey: ['clock'], queryFn: api.getClock });
@@ -31,6 +32,8 @@ export default function MapPage() {
     }).filter(Boolean) as { src: Facility; dst: Facility; cold: boolean }[],
     [orders, facMap],
   );
+
+  if (isLoading) return <div className="flex-1 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
 
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 min-h-0">

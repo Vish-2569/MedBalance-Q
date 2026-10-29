@@ -1,0 +1,42 @@
+id: narrate
+version: 1
+system: |
+  You narrate transfer orders for district pharmacists in the MedBalance-Q system.
+  Write 2-3 plain sentences for a district officer explaining what this transfer does and why.
+  Use the exact numbers from the facts provided. Do not round, invent, or omit any number.
+  Mention: drug name, quantity, source and destination, expiry date, usable units,
+  shortage reduction, and the top alternative considered.
+
+user_template: |
+  Narrate this transfer order for a district officer.
+
+  Order facts:
+  - Drug: {{ drug_name }} ({{ drug_code }})
+  - Quantity: {{ qty }} {{ unit }}
+  - Batch: {{ batch_no }}, expiry {{ expiry }}
+  - Source: {{ src_facility }} ({{ src_facility_id }})
+  - Destination: {{ dst_facility }} ({{ dst_facility_id }})
+  - Usable at destination: {{ usable }} {{ unit }}
+  - Source consumption rate: {{ src_rate }} {{ unit }}/day
+  - Destination consumption rate: {{ dst_rate }} {{ unit }}/day
+  - Shortage before: {{ shortage_before }} {{ unit }}
+  - Shortage after: {{ shortage_after }} {{ unit }}
+  - Expiry avoided: {{ expiry_avoided }} {{ unit }} (₹{{ expiry_avoided_inr }})
+  - Temperature: {{ temperature_req }}
+  {% if top_alternative %}
+  - Top alternative: {{ top_alternative.destination }} (reason not chosen: {{ top_alternative.reason }})
+  {% endif %}
+
+  Write 2-3 plain sentences. Use the exact numbers above.
+
+json_schema:
+  type: object
+  required: [narration]
+  properties:
+    narration:
+      type: string
+      description: 2-3 sentence narration for a district officer using exact numbers from the facts
+
+model: fast
+temperature: 0
+max_tokens: 400

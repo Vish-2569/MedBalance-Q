@@ -129,6 +129,8 @@ def activate(name: str) -> ScenarioDef:
             r.set("sim:demand_multipliers", json.dumps(existing))
         if name == "ilr_repaired":
             r.delete("sim:device_faults")
+        if name == "bad_data":
+            r.set("sim:scenario:bad_data", "1")
     except Exception:
         pass
     return defn
@@ -138,6 +140,15 @@ def get_signals(day_index: int = 0) -> list[dict]:
     result = []
     for sc in _active:
         for sig in sc.signals:
+            params: dict = {
+                "facility_id": sig.facility,
+                "affects": sig.drugs_affected,
+            }
+            for dm in sc.demand_multipliers:
+                if dm.facility == sig.facility:
+                    params["demand_multiplier"] = dm.multiplier
+                    params["drug_code"] = dm.drug_code
+                    break
             result.append({
                 "id": sig.id,
                 "type": sig.type,
@@ -145,7 +156,7 @@ def get_signals(day_index: int = 0) -> list[dict]:
                 "drugs_affected": sig.drugs_affected,
                 "text": sig.text,
                 "start_day": sig.start_day,
-                "params": {"facility": sig.facility, "drugs_affected": sig.drugs_affected},
+                "params": params,
                 "fired_at": None,
             })
     return result
@@ -177,6 +188,6 @@ def reset_scenarios():
     _active.clear()
     try:
         r = bus.get_redis()
-        r.delete("sim:device_faults", "sim:route_closures", "sim:demand_multipliers")
+        r.delete("sim:device_faults", "sim:route_closures", "sim:demand_multipliers", "sim:scenario:bad_data")
     except Exception:
         pass

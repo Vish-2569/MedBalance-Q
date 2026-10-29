@@ -270,6 +270,11 @@ def maxcut_chain(
     tiers: list[MaxCutPort] | None = None,
 ) -> MaxCutResult:
     """Try Max-Cut tiers in order. Record evidence for every attempt."""
+    print("[QPI AI QCLOUD] Running QAOA Max-Cut zoning...")
+    print(f"[QPI AI QCLOUD] Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+    print(f"[QPI AI QCLOUD] Depth: {depth}, Shots: {shots}")
+    log.info("maxcut_chain_start", nodes=G.number_of_nodes(), edges=G.number_of_edges(), depth=depth, shots=shots)
+
     tier_list = tiers or DEFAULT_MAXCUT_TIERS
     attempts: list[dict[str, Any]] = []
     best: MaxCutResult | None = None
@@ -282,6 +287,8 @@ def maxcut_chain(
         exact_cut = exact_result.cut_value
 
     for solver in tier_list:
+        print(f"[QPI AI QCLOUD] Trying tier: {solver.tier_name}...")
+        log.info("maxcut_tier_trying", tier=solver.tier_name)
         result = solver.solve(G, depth=depth, shots=shots)
 
         if exact_cut and exact_cut > 0 and result.cut_value > 0:
@@ -297,12 +304,17 @@ def maxcut_chain(
         attempts.append(attempt)
 
         if result.error is None and result.cut_value >= 0:
+            ratio = result.approx_ratio if not math.isnan(result.approx_ratio) else 0.0
+            print(f"[QPI AI QCLOUD] ✓ Tier: {solver.tier_name}")
+            print(f"[QPI AI QCLOUD] Best cut value: {result.cut_value}, Approx ratio: {ratio:.3f}")
+            log.info("maxcut_tier_succeeded", tier=solver.tier_name, cut_value=result.cut_value, approx_ratio=round(ratio, 4))
             best = result
             best.meta["attempts"] = attempts
             best.meta["exact_cut"] = exact_cut
             _write_maxcut_evidence(G, attempts, best)
             return best
 
+        print(f"[QPI AI QCLOUD] ✗ {solver.tier_name} skipped — {result.error}")
         log.info("maxcut_tier_failed", tier=solver.tier_name, error=result.error)
 
     if best is None:

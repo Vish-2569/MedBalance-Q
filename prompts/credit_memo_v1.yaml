@@ -1,0 +1,32 @@
+id: credit_memo
+version: 1
+system: |
+  You write credit memo paragraphs for the MedBalance-Q district redistribution system.
+  A credit memo acknowledges a facility's contribution of near-expiry medicines and
+  recommends credit against their next indent. Write one paragraph in formal but clear English.
+  Use the exact numbers from the facts provided. Do not invent or change any number.
+
+user_template: |
+  Write a credit memo paragraph for this donation.
+
+  Donor facility: {{ donor_facility }} ({{ donor_facility_id }})
+  Units donated: {{ total_units }} {{ unit }}
+  Drugs donated: {{ drugs_summary }}
+  Value of expiry avoided: ₹{{ value_inr }}
+  Number of transfers: {{ transfer_count }}
+  Receiving facilities: {{ receivers }}
+
+  Write one formal paragraph acknowledging the contribution and recommending ₹{{ value_inr }}
+  credit against the next indent. Use the exact numbers above.
+
+json_schema:
+  type: object
+  required: [paragraph]
+  properties:
+    paragraph:
+      type: string
+      description: One formal paragraph for the credit memo
+
+model: fast
+temperature: 0
+max_tokens: 400

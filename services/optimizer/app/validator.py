@@ -52,6 +52,7 @@ def apply_plan(
     selected: list of (candidate_index, Candidate) for variables set to 1.
     Returns validated orders with any trims or drops.
     """
+    print(f"[QPI AI OPT] Validating {len(selected)} orders against FEFO snapshot...")
     snap_copy = _deep_copy_snapshot(snap)
 
     orders: list[ValidatedOrder] = []
@@ -194,6 +195,9 @@ def apply_plan(
         # Apply transfer to snapshot copy
         _apply_transfer(snap_copy, order)
         orders.append(order)
+
+    status = "PASS" if not violations else "REPAIRED"
+    print(f"[QPI AI OPT] Validation: {status} — {len(violations)} violations, {trimmed_count} repairs")
 
     return ValidationResult(
         orders=orders,

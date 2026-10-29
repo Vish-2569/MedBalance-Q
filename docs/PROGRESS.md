@@ -848,3 +848,568 @@ Tier 4 networkx-greedy:   PASS (nx.one_exchange)
 
 ### Requests to other lanes
 - None
+
+---
+
+## P12 — Forecast service: Holt-Winters + LLM context multiplier (2026-10-30)
+
+### Done
+
+- **Baseline forecasting** (`services/forecast/app/baseline.py`): `holt_winters_forecast()` with weekly seasonality (statsmodels ExponentialSmoothing, seasonal_periods=7, additive trend+seasonal). Falls back to EWMA when < 14 days of history or statsmodels fails. Returns `BaselineResult` with daily_rate, p10/p90 from residuals, method tag.
+
+- **LLM context multiplier** (`services/forecast/app/context.py`):
+  - `SEASONAL_CALENDAR`: static monsoon/winter/dengue/dasara signals with months and affected drug codes.
+  - `fetch_signals(today)`: merges sim-control GET /signals with seasonal calendar (by current month). Fixture mode skips HTTP call.
+  - `relevant_signals(facility, drug, signals)`: filters by facility_id, drug_code, and `affects` list.
+  - `get_context_multiplier(...)`: calls genai POST /llm/complete with `forecast_ctx_v1` prompt only when relevant signals exist. On failure, deterministic fallback using signal params.
+  - `apply_guardrails(llm_output, signals)`: clamps multiplier to [0.5, 3.0], validates signal IDs against available signals, rejects if no valid citation or confidence < 0.5 → returns 1.0.
+
+- **Prompt** (`prompts/forecast_ctx_v1.yaml`): system/user_template for context multiplier. Input: facility, drug, baseline_rate, recent_series, signals. Output JSON: {multiplier, confidence, signal_ids[], reasoning}. model=fast, temperature=0.
+
+- **Forecast store** (`services/forecast/app/store.py`): in-memory `ForecastStore` singleton keyed by (facility_id, drug_code). `ForecastRow` dataclass with to_dict(). Supports upsert, get, list_all (with facility/drug filters), history, clear.
+
+- **Runner** (`services/forecast/app/runner.py`): `run_forecast(today, facility_filter, drug_filter)` orchestrates: load data (core-api or fixtures) → fetch signals → per-pair baseline + context → store. Returns {forecasts, llm_calls, time_ms}. Publishes `forecast.updated` via Redis Streams. Fixture data: 90-day synthetic consumption with weekly seasonality + noise (seeded).
+
+- **Backtest** (`services/forecast/app/backtest.py`): `run_backtest(actual_consumption)` computes MAPE for baseline vs adjusted per facility×drug. Returns mae, rmse, coverage, per_pair breakdown.
+
+- **API routes** (`services/forecast/app/router.py`):
+  - `POST /forecast/run` — runs forecast (optional facility_id, drug_code filter)
+  - `GET /forecast` — list forecast rows (optional facility/drug query params)
+  - `GET /forecast/backtest` — backtest against fixture consumption
+
+- **Service wiring** (`services/forecast/app/main.py`): router included before fixture serving (same pattern as optimizer fix from P11).
+
+- **Dependencies** (`services/forecast/pyproject.toml`): added statsmodels>=0.14, numpy>=1.26, httpx>=0.27.
+
+### Tests (28 total)
+
+| Class | Tests | Coverage |
+|---|---|---|
+| TestHoltWinters | 5 | Seasonal data, short series fallback, empty, constant, residuals |
+| TestEWMA | 3 | Basic, empty, single value |
+| TestGuardrails | 7 | Clamp high/low, no valid citation→1.0, empty citation→1.0, low confidence→1.0, valid passthrough, at threshold |
+| TestRelevantSignals | 4 | Matching facility+drug, no match, seasonal affects filter, no facility filter |
+| TestNoSignalPath | 1 | No signals → zero LLM calls |
+| TestStore | 2 | Upsert+get, list with filters |
+| TestRunner | 1 | Run produces forecasts with multiplier=1.0 when no signals |
+| TestAPI | 5 | POST /forecast/run, GET /forecast, GET /forecast?facility=, GET /forecast/backtest, GET /health |
+
+### How to verify
+1. `cd services/forecast && python -m pytest tests/ -v` — 28 tests green
+2. `docker compose build forecast` — succeeds
+3. With compose up:
+   ```
+   curl -X POST :8080/api/forecast/forecast/run -H 'Content-Type: application/json' -d '{}'
+   curl :8080/api/forecast/forecast
+   curl :8080/api/forecast/forecast/backtest
+   ```
+4. Activate dengue_outbreak scenario → `POST /forecast/run` → H3 ORS forecast should show multiplier > 1 with outbreak signal id.
+
+### Decisions
+- Holt-Winters MIN_HW_DAYS = 14 (need 2 full weeks for weekly seasonality)
+- EWMA alpha = 0.3 (standard default, responsive without being noisy)
+- Seasonal calendar is static (not fetched from sim-control) — signals from sim-control are dynamic (outbreaks, campaigns)
+- Context multiplier only called when relevant signals exist (keeps LLM calls low per requirement)
+- Confidence threshold = 0.5 (at threshold passes, below rejects)
+- Deterministic fallback uses signal params (demand_multiplier or factor field) when LLM unavailable
+
+### Open issues
+- Redis bus.publish for forecast.updated silently fails in test (no live Redis) — acceptable for unit tests
+- End-to-end acceptance test with dengue_outbreak requires live compose stack
+
+### Requests to other lanes
+- None
+
+---
+
+## P13 — Web frontend pages (2026-10-30)
+
+### Done
+- **Ingestion & Review page** (`web/src/pages/IngestionPage.tsx`):
+  - Report list with facility, channel badge (FHIR R5/e-Aushadhi CSV/Chat Kannada/Free Text), language badge (Kannada rendered with Noto Sans Kannada font), timestamp, status
+  - Expandable report detail: raw text panel (left, Kannada-rendered with `.font-kannada`) + extracted items table (right) with per-item confidence chips (green ≥85%, amber 60-84%, red <60%)
+  - Review queue table with anomaly type, LLM explanation, confidence; three actions: accept (check), correct (pencil → opens modal), reject (X)
+  - Correction modal: drug code picker from candidates dropdown, qty input, expiry date picker
+  - 4 stat cards: Reports Received, Flagged, Pending Reviews, Resolved (color-coded)
+  - Pending review rows with `qty_spike` anomaly highlighted with subtle red background
+  - Badge count in sidebar from pending reviews (via `anomaly.flagged` SSE events)
+
+- **Plan page** (`web/src/pages/PlanPage.tsx`):
+  - Solver tier badge (QpiAI Platform/Local/SA/Greedy Descent), gap to MILP, violations: 0 badge
+  - Solver attempts cascade (shows each tier tried with skip/success)
+  - 7-stage pipeline bar: Snapshot → Feasibility → Zoning → QUBO Build → Solve → Validate → Persist
+  - 4 KPI cards: Transfers, Shortage Reduction, Expiry Avoided, Cost
+  - **Zone mini-map** (SVG): facilities color-coded by Max-Cut zone partition, transfer arcs (dashed blue for cold chain), zone legend with tier and cut value
+  - Orders grouped by destination (collapsible), cold chain snowflake icons
+  - Regret analysis section
+
+- **Benchmark page** (`web/src/pages/BenchmarkPage.tsx`):
+  - QUBO gap to MILP badge, Max-Cut zoning tier badge
+  - Grouped bar charts (objective comparison, shortage reduction) with per-solver colors
+  - Full comparison table (Solver, Objective, Shortage Red., Expiry Avoided, Waste Moved, Trips, Time)
+  - Zoning comparison: **three cards** — QAOA Max-Cut vs k-means vs Exact Brute-Force with partition, cut values, intra-zone costs, approximation ratios
+
+- **Cold chain page** (`web/src/pages/ColdchainPage.tsx`):
+  - Red pulsing excursion banner listing affected device IDs
+  - Summary stat cards (Devices, OK, Excursions)
+  - Device cards with Recharts temperature sparkline (2–8°C band shaded blue), state badge (OK/Warning/Excursion), battery, last seen
+  - Auto-refresh every 5 seconds
+  - **Global excursion banner** in App.tsx (pulsing red bar across all pages on `coldchain.alert` SSE events)
+
+- **Scenario console** (`web/src/pages/ScenariosPage.tsx`):
+  - Clock display with live date/day index/speed, play/pause buttons, speed controls (0.5x–10x)
+  - Reset button with seed input
+  - Active scenario cards (teal, with active badge) and available scenario cards (with Activate button)
+  - Recent signals table (ID, type, params JSON, fired_at)
+  - 7 predefined scenarios: baseline, dengue_outbreak, fridge_failure, bad_data, ilr_repaired, road_closure, td_campaign
+
+- **Supporting infrastructure**:
+  - Noto Sans Kannada font loaded via Google Fonts in index.html
+  - Expanded domain types (StockReport, ReviewItem, Benchmark with exact zoning, ColdchainStatus with state+history)
+  - Rich fixtures (4 reports incl. Kannada chat & flagged text, 3 reviews, 5 benchmark rows, 3 sensors with excursion, 7 scenarios, 2 signals, exact brute-force zoning)
+  - Updated API layer with `resolveReview`, `getSignals`, `resetSim`
+
+### How to verify
+1. `cd web && npm run build` — zero errors
+2. `VITE_USE_FIXTURES=1 npm run dev` — all pages render with fixture data:
+   - **Ingestion**: 4 reports (H1 FHIR, H2 CSV, H3 Kannada chat, H4 flagged text); expand H3 to see Kannada raw text + extracted items; review queue shows 2 pending items with accept/correct/reject buttons
+   - **Plan**: solver badges, pipeline stages, zone mini-map with 2 zones, 6 orders grouped by destination
+   - **Benchmark**: 5-solver comparison, 3.02% gap, 3 zoning cards (QAOA/k-means/exact)
+   - **Cold Chain**: sensor-03 excursion with rising sparkline, red banner
+   - **Scenarios**: 7 scenario cards, clock controls, 2 signals
+
+### Decisions
+- Recharts for all charts (already in deps); fixture mode returns rich data matching live API shapes
+- Zone mini-map uses simple SVG projection (no Leaflet dependency) — lightweight for the plan page
+- Cold chain page refreshes every 5s; global excursion banner checks SSE events
+- Exact brute-force zoning added to fixture for 3-way comparison
+
+### Open issues
+- None
+
+### Requests to other lanes
+- None
+
+---
+
+## CP2 — Scenario integration tests (2026-10-30)
+
+### Done
+- **tests/integration/test_cp2.py** — 9 tests in 6 classes:
+  1. `TestStep1Setup` (3): stack reachable, reset sim seed=42, advance clock 2 days and pause
+  2. `TestStep2Dengue` (2): activate dengue_outbreak, verify H3 ORS forecast multiplier > 1.0
+  3. `TestStep3BadData` (3): activate bad_data, inject report with past expiry (1999) and qty=10000 directly to ingest-ai, verify review items or gate flags
+  4. `TestStep4Plan` (3): run QUBO solver, assert tier is any QUBO variant, assert 0 violations
+  5. `TestStep5Benchmark` (1): GET benchmark for plan, assert 5 solver rows
+  6. `TestStep6Fridge` (2): activate fridge_failure, poll coldchain /status for EXCURSION within 90s
+
+### Shared-code issues found and fixed (5 total)
+
+| # | Lane | Service | Issue | Fix |
+|---|------|---------|-------|-----|
+| 1 | L3 | genai | `ModuleNotFoundError: No module named 'jinja2'` — Dockerfile missing deps | Added `RUN uv pip install --system jinja2 pyyaml "google-genai>=1.0.0" redis` before COPY |
+| 2 | L3 | ingest-ai | `ModuleNotFoundError: No module named 'rapidfuzz'` — Dockerfile missing deps | Added `RUN uv pip install --system rapidfuzz python-multipart pyyaml httpx` |
+| 3 | L3 | forecast | Dockerfile missing `statsmodels numpy httpx` | Added `RUN uv pip install --system statsmodels "numpy>=1.26" httpx` |
+| 4 | L4/L3 | sim-control | `bad_data` scenario `activate()` did not set `sim:scenario:bad_data` Redis key that `sim_hospital/tick_handler.py:_check_bad_data()` checks | Added `r.set("sim:scenario:bad_data", "1")` in activate(); added key to `reset_scenarios()` cleanup |
+| 5 | L4/L3 | sim-control | `get_signals()` returned params with keys `facility`/`drugs_affected` but forecast `relevant_signals()` expected `facility_id`/`affects`/`demand_multiplier` | Fixed `get_signals()` to emit `facility_id`, `affects`, `demand_multiplier`, `drug_code` in params |
+
+### How to verify
+1. Full stack running: `make down && make build && make seed && make up`
+2. `python -m pytest tests/integration/test_cp2.py -v --tb=short`
+3. Expected: 9 tests pass (dengue multiplier > 1, bad data flagged, QUBO tier, 5 benchmark rows, coldchain excursion)
+
+### Decisions
+- bad_data test injects directly to `/api/ingest/ingest/H4` (text/plain) rather than relying on sim-hospital tick + LLM extraction, since genai may lack API key in test environment
+- fridge_failure test restarts clock and polls every 5s; sensor ramp takes ~60s (12 cycles × 5s) for 3 consecutive breaches
+- QUBO tier assertion accepts any tier containing known QUBO solver names (platform, local, neal-sa, greedy-descent, or decomposed variants)
+
+### Open issues
+- Forecast `run_forecast` may fall through to multiplier=1.0 if seasonal calendar doesn't match the sim date; the dengue signal fallback depends on the `demand_multiplier` param in the signal (fixed in issue #5 above)
+- If genai has no GEMINI_API_KEY, LLM extraction for text/chat reports returns empty items; the bad_data test works around this by injecting directly
+
+### Requests to other lanes
+- None
+
+---
+
+## P14 — Regret ledger, why-not, what-if, auto re-plan (2026-10-30)
+
+### Done
+
+- **regret.py** — Per-order regret ledger with ΔH analysis:
+  - For each QUBO order, evaluates ΔH of flipping its variable: to nowhere (x_i=0), to each alternative destination (swap chunk), and from alternative top-k solver samples
+  - `compute_regret_from_vars(var_to_order_id, candidates, qubo_result, solve_result, ven_priority)` → `list[OrderRegret]`
+  - Each `OrderRegret` has top 5 `RegretEntry` sorted by ΔH ascending with `reason_code` (LOWER_USABLE, HIGHER_COST, LOWER_VEN, FAILED_RULE_Fx, WORSE_FILL) and deterministic `reason_text` with numbers
+  - Regret is included in solver_meta.regret in the plan response
+  - ΔH verified to match `energy()` recomputation (test passes)
+
+- **whynot.py** — `GET /whynot?facility=&drug=`:
+  - `compute_whynot(facility, drug, snap, candidates, orders)` → structured JSON
+  - Returns: residual_shortage, supplied, every candidate source lot with failed_rules or the net_score that made it lose
+  - Candidates sorted by feasibility desc, net_score desc
+  - Lists F3 (cold chain) for H4 insulin when ILR is down (test passes)
+
+- **whatif.py** — `POST /whatif {overrides}`:
+  - Overrides: `add_vehicle`, `close_route`, `open_route`, `set_reserve_days`, `delay_days`, `repair_cold_storage`, `break_cold_storage`, `set_multiplier`, `remove_vehicle`
+  - Deep-copies snapshot, applies overrides, runs full pipeline (QUBO → validate → metrics)
+  - Returns diff vs live plan: orders added/removed/changed, KPI deltas (shortage_reduction, expiry_avoided, cost, trips)
+  - Never persists as live
+  - `repair_cold_storage(H4)` enables insulin transfers to H4 (test passes)
+
+- **replan.py** — Auto re-plan on coldchain.alert:
+  - Consumes `coldchain.alert` Redis Stream via `stream_lifespan` in optimizer main.py
+  - Finds live, not-yet-dispatched cold orders on affected vehicles/routes
+  - Runs what-if with the affected vehicle removed
+  - If result is valid: persists as revised plan, marks old orders superseded, publishes `plan.revised` with diff
+  - End-to-end: fridge failure → re-plan moves cold orders off CV-02 (test passes)
+
+- **Router updates** (`services/optimizer/app/router.py`):
+  - Regret ledger wired into `_run_qubo_pipeline` → included in `solver_meta.regret`
+  - New caches: `_PLAN_QUBO`, `_PLAN_SOLVE`, `_PLAN_METRICS`, `_LATEST_PLAN_ID`
+  - `set_live_plan()` called after each plan/run for auto re-plan
+  - **GET /whynot?facility=&drug=** — residual shortage explanation
+  - **POST /whatif** — {overrides, solver, plan_id} → diff with KPI deltas
+
+- **main.py**: coldchain.alert consumer via `stream_lifespan` (daemon thread, non-blocking)
+
+### Tests (9 new, 106 total — all pass)
+- `TestRegretDeltaH::test_delta_h_matches_energy` — verifies ΔH recomputation matches `energy()`
+- `TestRegretDeltaH::test_regret_entries_have_reason_codes` — reason_code and reason_text present
+- `TestWhyNotF3::test_whynot_h4_insulin_f3` — F3 failure for H4 insulin (no cold storage)
+- `TestWhyNotF3::test_whynot_structure` — response structure validation
+- `TestWhatIfRepairColdStorage::test_repair_cold_storage_h4` — H4 becomes destination after repair
+- `TestWhatIfRepairColdStorage::test_overrides_dont_mutate_snapshot` — snapshot immutability
+- `TestAutoReplanColdOrders::test_replan_on_fridge_failure` — cold orders moved off CV-02
+- `TestAutoReplanColdOrders::test_replan_noop_without_live_plan` — graceful no-op without live plan
+- `TestRegretSanity::test_regret_sorted` — entries sorted by ΔH ascending
+
+### How to verify
+1. `cd services/optimizer && python -m pytest tests/ -v` — 106 tests green
+2. `docker compose build optimizer` — succeeds
+3. With compose up and a plan run: `curl ':8080/api/optimizer/whynot?facility=H4&drug=INSULIN'` — shows F3 cold chain failure
+4. `curl -X POST ':8080/api/optimizer/whatif' -H 'Content-Type: application/json' -d '{"overrides":[{"action":"repair_cold_storage","facility":"H4"}]}'` — returns diff
+5. Activate fridge_failure scenario → within 60s, plan.revised event published with cold order diff
+
+### Decisions
+- Regret uses `energy()` recomputation (not approximation) for exact ΔH — ensures auditability
+- What-if always deep-copies snapshot; overrides never mutate the live state
+- Auto re-plan triggers only when there are undispatched cold orders on the affected vehicle; no-op otherwise
+- `remove_vehicle` override (not `close_route`) used for fridge failure — the vehicle is unsafe, not the route
+- `stream_lifespan` (daemon thread) for Redis consumer — compatible with FastAPI async lifespan
+
+### Open issues
+- Re-plan does best-effort persist to core-api; if core-api is down, the revised plan is still published to Redis but not stored
+- Regret for decomposed-solve plans not yet supported (only flat QUBO pipeline)
+
+### Requests to other lanes
+- None
+
+---
+
+## P15 — Grounded narrations, numeric firewall, DTA/credit-memo PDFs (2026-10-30)
+
+### Done
+
+- **Prompt definitions**:
+  - `prompts/narrate_v1.yaml`: input = order facts (drug, qty, src/dst, usable, shortage before/after), output {narration} in 2-3 plain sentences for a district officer. model=fast, temperature=0.
+  - `prompts/credit_memo_v1.yaml`: input = donor facility facts, output {paragraph} acknowledging contribution. model=fast, temperature=0.
+
+- **Numeric grounding firewall** (`services/genai/app/firewall.py`):
+  - `extract_values(text)`: regex extracts ₹ amounts, ISO dates, slash dates, percentages, plain numbers (Indian comma format 1,50,000). Negative lookbehind/lookahead prevents matching digits inside identifiers (H1, 500mg).
+  - `check_narration(narration, facts)`: builds fact set from order facts, checks each extracted value (exact or ±0.5% tolerance for derived percentages). Any mismatch → `grounding_ok=false`, narration replaced with deterministic template, `firewall_block` logged.
+  - `_deterministic_narration(facts)`: template fallback with exact numbers from facts.
+
+- **Narration service** (`services/genai/app/narration.py`):
+  - `narrate_order(llm_service, order_facts)`: calls LLM via `llm_service.complete(purpose="narrate", prompt_id="narrate", version=1)`, runs through firewall. Falls back to deterministic on LLM failure.
+  - `narrate_credit_memo(llm_service, memo_facts)`: same pattern for credit memos.
+
+- **PDF generation** (`services/genai/app/pdf_gen.py`):
+  - WeasyPrint for HTML→PDF rendering (falls back to raw HTML if not installed).
+  - QR code generation via `qrcode` library → base64 PNG data URI.
+  - `generate_dta_pdf(order, base_url)`: DTA voucher — "DRUG TRANSFER ADVICE", DTA number, "Near to Expiry"/"Normal" column (residual < 90 days), QR code to `/scan/{qr_token}`, footer "Synthetic demo data".
+  - `generate_coldchain_log_pdf(order, readings)`: sensor trace table, min/max temps, breach highlighting.
+  - `generate_credit_memo_pdf(donor, items, paragraph, plan_id)`: donor credit memo with recommended credit ₹.
+
+- **HTML templates** (`services/genai/app/templates/`): `dta_voucher.html`, `coldchain_log.html`, `credit_memo.html`.
+
+- **Router endpoints** (`services/genai/app/router.py`):
+  - `POST /narrate/batch`, `POST /narrate/{order_id}`, `GET /dta/{order_id}/pdf`, `GET /coldchain-log/{order_id}/pdf`, `POST /credit-memo/pdf`.
+
+- **Batch narration consumer** (`services/genai/app/main.py`): listens on `plan.completed` and `plan.revised` Redis Streams.
+
+- **Dockerfile**: added `weasyprint qrcode httpx` dependencies.
+
+### Tests (20 new, 41 total genai — all pass)
+
+Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic narration (1), narrate order/fallback/credit memo (3), DTA PDF renders/no Form 19/near expiry (3), coldchain log/credit memo PDF (2), QR data URI/decode (2), API narrate single/batch (2).
+
+### How to verify
+1. `cd services/genai && python -m pytest tests/ -v` — 41 tests green
+2. `docker compose build genai` — succeeds
+3. `curl -X POST :8080/api/genai/narrate/ORD-001 -H 'Content-Type: application/json' -d '{"order_facts":{...}}'`
+4. `curl :8080/api/genai/dta/ORD-001/pdf -o dta.pdf` — generates DTA voucher PDF with QR
+
+### Decisions
+- Firewall regex uses `(?<![A-Za-z\-\d])..(?!\w)` to skip digits in identifiers
+- DTA voucher never called "Form 19" (CLAUDE.md §5)
+- Near-expiry threshold = 90 days residual shelf life
+- WeasyPrint fallback to raw HTML when not installed (tests still pass)
+- QR token from core-api order's qr_token field (HMAC-SHA256 of order_id)
+
+### Open issues
+- WeasyPrint needs system fonts + cairo/pango in Docker image for actual PDF output
+- Credit memo endpoint is POST (requires items list)
+
+### Requests to other lanes
+- L1 (core-api): Include `narration` field on order response; include `qr_token` in GET /orders/{id}
+
+---
+
+## P16 — Copilot: streaming tool-using agent (2026-10-30)
+
+### Done
+
+- **Copilot system prompt** (`prompts/copilot_v1.yaml`):
+  - Role: assistant to the District Drug Officer, Bengaluru Urban
+  - Grounding rules: every number from tool results only, "I don't have that information" fallback
+  - Facility reference by name + code, never claim approved unless tool says so
+  - Language: answer in user's language (English or Kannada)
+  - model=smart, temperature=0, max_tokens=2048
+
+- **Tool definitions and executors** (`services/genai/app/copilot_tools.py`):
+  - 8 tools with JSON Schema parameters: `get_district_overview`, `get_stock_position(facility, drug)`, `explain_order(order_id)`, `why_not(facility, drug)`, `what_if(overrides)`, `get_coldchain_status`, `get_audit_trail(order_id)`, `compare_policies`
+  - Each maps to a real HTTP call (core-api, optimizer, coldchain) with 10s timeout
+  - Fixture mode for testing: comprehensive fixture data matching domain shapes (positions, orders, why-not with F3 failure, what-if repair diff, coldchain devices, audit trail, policies)
+  - Graceful error handling: never raises, returns `{error: ...}` dict
+
+- **Agent loop** (`services/genai/app/copilot.py`):
+  - `CopilotSession.chat()` — async generator yielding SSE events
+  - Up to 5 tool-call rounds; streams `tool_call` and `tool_result` events between rounds
+  - Post-checks final answer with the P15 numeric firewall against concatenated tool results; appends "⚠ Some figures could not be verified" on failure
+  - Session persistence in Postgres (`chat_session` + `chat_message` tables) including tool calls as JSONB
+  - DEMO_MODE replay via DB history
+  - Read-only: never approves or changes live data
+
+- **SSE endpoint** (`services/genai/app/router.py`):
+  - `POST /copilot/chat` — streaming SSE with events: `session`, `tool_call`, `tool_result`, `token`, `answer`, `error`
+  - `CopilotRequest`: message, session_id (optional), user_id
+
+- **Golden evals** (`evals/golden/copilot.json`):
+  - 12 scripted questions covering all 8 tools
+  - Includes expected_tools, expected_args, expected_contains, language tag
+  - Q03: "Why didn't Hesaraghatta get insulin?" → why_not → F3 cold chain
+  - Q04: "What if we repair its fridge?" → what_if → shortage reduction diff
+  - Q12: Kannada question about insulin at H4
+
+### Tests (24 new, 65 total genai — all pass)
+
+| Test | What it verifies |
+|---|---|
+| `test_tool_definitions_complete` | All 8 tools defined |
+| `test_tool_definitions_have_schemas` | JSON Schema format correct |
+| `test_all_tools_in_map` | Every definition has an executor |
+| `test_tool_district_overview` | Fixture returns facilities + shortage |
+| `test_tool_stock_position` | H1/INSUL position with effective_stock |
+| `test_tool_stock_position_not_found` | Unknown facility returns error |
+| `test_tool_explain_order` | ORD-001 with DTA number and audit |
+| `test_tool_why_not_h4_insulin` | F3 cold storage failure for H4 |
+| `test_tool_what_if_repair` | Repair H4 → insulin transfer added |
+| `test_tool_coldchain_status` | Device list returned |
+| `test_tool_audit_trail` | ORD-005 audit entries |
+| `test_tool_compare_policies` | 7+ policy entries |
+| `test_tool_unknown` | Unknown tool returns error |
+| `test_copilot_basic_response` | Session created, answer returned |
+| `test_copilot_creates_session_id` | cs- prefix session ID |
+| `test_copilot_resumes_session` | Same session_id on continue |
+| `test_copilot_calls_why_not_tool` | Tool call + F3 in answer |
+| `test_copilot_calls_what_if_tool` | What-if tool call + diff in answer |
+| `test_copilot_firewall_blocks_bad_number` | 99999 blocked, warning appended |
+| `test_flatten_into` | Nested dict flattening |
+| `test_summarize_functions` | Tool result summaries |
+| `test_api_copilot_chat` | SSE streaming endpoint |
+| `test_golden_evals_structure` | 12 questions with required fields |
+| `test_copilot_prompt_loaded` | Prompt loaded with correct rules |
+
+### How to verify
+1. `cd services/genai && python -m pytest tests/ -v` — 65 tests green
+2. `docker compose build genai` — succeeds
+3. With compose up:
+   ```
+   curl -N -X POST :8080/api/genai/copilot/chat \
+     -H 'Content-Type: application/json' \
+     -d '{"message":"Why didn'\''t Hesaraghatta get insulin?"}'
+   ```
+   SSE stream: session → tool_call(why_not) → tool_result(F3) → answer
+4. Follow up: `'{"message":"What if we repair its fridge?","session_id":"<from above>"}'` → what_if tool, diff in answer
+
+### Decisions
+- Read-only agent: tools only call GET endpoints (except POST /whatif which never persists)
+- FakeProvider returns text without tool_calls; ToolCallingProvider test helper simulates the tool-call loop
+- Firewall post-check uses flattened tool results as fact set — any hallucinated number triggers the warning
+- Session history loaded from DB on each turn; in-memory when DB unavailable
+- Tool fixture data reads `os.environ["USE_FIXTURES"]` directly (not cached settings) so tests can toggle it
+- Max 5 tool rounds prevents infinite loops
+
+### Open issues
+- GeminiProvider doesn't support native function-calling yet (would need google.genai tool_config); currently tools work via FakeProvider in tests and the prompt instructs the model to call tools by outputting JSON
+- Copilot chat page not yet added to web frontend
+
+### Requests to other lanes
+- None
+
+---
+
+## P17 — Per-order approval workflow and QR chain of custody (2026-10-30)
+
+### Done
+- **Custody scan endpoint** (`POST /custody/scan`): replaces the 501 stub with full implementation
+  - HMAC-SHA256 token verification against `QR_HMAC_SECRET` (falls back to `dev-secret`)
+  - Looks up order by `qr_token` column, then verifies HMAC matches order_id
+  - State machine enforcement: `approved → dispatched → received → consumed`
+  - On dispatch: calls sim-hospital(src) `/transfers/outbound` to decrement source lot
+  - On receive: calls sim-hospital(dst) `/transfers/inbound` to create destination lot
+    - If cold-chain excursion detected on the vehicle during transit, lot created with status `quarantined`
+  - Publishes `custody.scanned` Redis event with deviation data
+  - Requests genai one-line summary for deviations (firewalled)
+- **Deviation detection** on receive:
+  - `qty_mismatch`: received qty != dispatched qty
+  - `late_arrival`: arrival > ETA + 1 day (computed from dispatch time + route transit_hours)
+  - `cold_chain_excursion`: alert on vehicle from coldchain service during transit
+  - Deviations stored as JSON in `custody_event.deviation` column
+- **Schema updates**:
+  - `transfer_order`: added `qr_token TEXT`, `dispatched_at TIMESTAMPTZ`, `received_at TIMESTAMPTZ`; expanded status CHECK to include `received` and `consumed`
+  - `custody_event`: added `qty INTEGER`, `deviation JSONB` columns; expanded event_type CHECK to include `received` and `consumed`
+- **Approval triggers**: `POST /orders/{id}/approve` now fire-and-forget calls genai `/narrate/{order_id}` for DTA voucher generation
+- **`qr_token` persisted**: `insert_transfer_order` now stores the HMAC token in the DB (was computed but not saved before)
+- **Admin demo endpoints**:
+  - `POST /admin/tamper-demo` — modifies an audit row's payload to break the hash chain (stashes original)
+  - `POST /admin/restore-demo` — restores the tampered row from stash
+- **sim-hospital**: `TransferItem` model now accepts `status` field, passed through to `upsert_lot` (supports `quarantined` for cold-chain excursion)
+
+### Files changed
+| File | Change |
+|---|---|
+| `db/init/001_schema.sql` | Added qr_token, dispatched_at, received_at to transfer_order; qty, deviation to custody_event; expanded CHECK constraints |
+| `services/core_api/app/queries.py` | Added `get_order_with_token`, `update_order_status`, `insert_custody_event`, `get_last_custody_event`, `tamper_audit_row`, `restore_audit_row`; updated `insert_transfer_order` (qr_token), `get_custody_events` (qty, deviation) |
+| `services/core_api/app/routers/custody.py` | Full implementation: HMAC verify, state machine, sim-hospital calls, deviation detection, genai summary |
+| `services/core_api/app/routers/orders.py` | Async DTA generation trigger on approval |
+| `services/core_api/app/routers/audit_routes.py` | `POST /admin/tamper-demo`, `POST /admin/restore-demo` |
+| `services/core_api/tests/conftest.py` | SQLite schema updated with new columns |
+| `services/core_api/tests/test_custody.py` | 13 new tests |
+| `services/core_api/tests/test_api.py` | Updated `test_custody_scan_501` to `test_custody_scan_requires_fields` (422 now, not 501) |
+| `services/sim_hospital/app/routers/transfers.py` | TransferItem accepts `status` field for quarantine support |
+
+### Tests (34 total, all pass)
+- **test_custody.py (13 new)**:
+  - State machine: dispatch from approved, cannot dispatch from proposed, full lifecycle (approved->dispatched->received->consumed), cannot receive from approved
+  - HMAC: invalid token rejected (403/404)
+  - Deviation: qty mismatch detected on receive
+  - Custody chain: events populated after dispatch+receive
+  - Audit: verify ok after scan, tamper breaks verify + restore fixes it
+  - API integration: scan dispatch, invalid token, tamper/restore, custody chain query
+- **Existing (21)**: all pass unchanged (except test_custody_scan_501 renamed)
+
+### How to verify
+1. `cd services/core_api && python -m pytest tests/ -v --timeout=30` — 34 tests pass
+2. With compose running: approve order, scan dispatch/receive, check custody timeline, verify audit, tamper/restore demo
+
+### Decisions
+- Token lookup: search by `qr_token` column in DB, then verify HMAC
+- State machine uses a simple dict of valid transitions
+- Deviations stored as JSONB on the custody_event row
+- Sim-hospital calls are fire-and-forget (logged but don't block the scan response)
+- Admin tamper/restore uses an in-memory stash (acceptable for demo)
+
+### Open issues
+- `deviation_summary` prompt YAML not yet created in prompts/ — genai call falls back gracefully
+- Sim-hospital auto-scan (approved orders flow automatically after transit time) not yet wired to clock tick handler
+- Cold-chain excursion check queries coldchain `/status` — in demo, data may not be available for specific vehicle+time
+
+### Requests to other lanes
+- L4 (sim-control): wire auto-scan flag so approved orders in sim-hospital dispatch+receive automatically after transit_hours on clock tick
+- L3 (genai): create `prompts/deviation_summary_v1.yaml` for one-line deviation summaries
+
+---
+
+## P18 — Web frontend: order detail, copilot, polish (2026-10-30)
+
+### Done
+
+**P18a — Order Detail Page** (`web/src/pages/OrderDetailPage.tsx`):
+- Header: DTA number, status badge, source/destination facility names, drug info
+- Narration section with grounded/template chip
+- QUBO term breakdown stacked horizontal bar with legend
+- Regret alternatives table with delta scores and reason codes
+- DTA voucher download button (enabled when status >= approved)
+- Custody timeline: vertical timeline with colored dots per event type, deviation badges
+- Provenance graph: left-to-right layered SVG with node positioning by type columns, arrow markers
+- Approve/reject mutation buttons when status='proposed'
+- Link from Plan page orders table via "View" column
+
+**P18b — Optimizer Demo Logs**:
+- Added `print()` + `logger.info()` statements throughout optimizer service:
+  - `router.py`: run_plan banner, facility/drug/lot counts, candidate count, completion summary
+  - `solvers/chain.py`: each tier attempt with success/skip messages
+  - `maxcut.py`: graph stats, depth, shots, tier results, best cut value and approx ratio
+  - `validator.py`: validation start/result with violation and repair counts
+- Added `ENV PYTHONUNBUFFERED=1` to optimizer Dockerfile
+
+**P18b — Web Features**:
+- Copilot side panel (`web/src/components/CopilotPanel.tsx`): SSE streaming from POST /copilot/chat via fetch + ReadableStream, tool-call chips with expand/collapse, suggested questions (EN/Kannada), language toggle, AbortController cleanup, fixture mode with character-by-character streaming simulation
+- Scan page (`web/src/pages/ScanPage.tsx`): standalone route at /scan/:token, mobile-first max-w-md layout, NEXT_EVENT state machine (approved->dispatch->receive->consume), qty input on receive, success/error handling
+- Audit badge (`web/src/components/TopBar.tsx`): chain length display, 5-click secret admin menu with 1.5s window, two-step tamper confirmation dialog, tamper/restore mutations
+- AI Health page (`web/src/pages/AIHealthPage.tsx`): dynamic fetch with 15s refetch, 6 stat cards (Total LLM Calls, Cache Hit Rate, P95 Latency, Schema Failures, Fallbacks, Firewall Blocks), provider info, prompts table, eval scores with progress bars and color thresholds, guardrails reminder
+
+**P18c — Results Page & Final Polish**:
+- Results page rewrite (`web/src/pages/ResultsPage.tsx`):
+  - 4 KPI cards: Stockout Days Saved, Expiry Value Saved, Waste Moved, Shortage Reduction with CI
+  - Stockout reduction progress bar with before/after visualization
+  - Units Transferred by Drug bar chart (from plan data)
+  - Remaining Shortages pie chart (from positions)
+  - Policy Ablation Study table with inline progress bars, production config highlighted
+  - Loading spinner and empty state
+- Polish pass across all pages:
+  - Added loading spinners to MapPage, IngestionPage, ScenariosPage (BenchmarkPage, ColdchainPage, AIHealthPage, PlanPage already had them)
+  - All pages have empty/no-data states
+  - Chart placeholders when no data available
+- Responsive layout:
+  - Sidebar collapses to icon-only at <1400px via CSS media query with `sidebar-nav` class
+  - Nav items have title attributes for icon-only mode tooltip
+  - Tables wrapped in `overflow-x-auto` for horizontal scroll at narrow widths
+- Navigation audit: Sidebar has all 8 pages in logical order (Map -> Ingestion -> Plan -> Benchmark -> Cold Chain -> Results -> AI Health -> Scenarios)
+
+### Pages built (complete list)
+
+| Page | Route | Key features |
+|---|---|---|
+| Map | `/` | Leaflet/SVG fallback, facility markers, transfer arcs, facility drawer |
+| Ingestion | `/ingestion` | Reports list, review queue, correction modal, Kannada support |
+| Plan | `/plan` | Run optimizer, solver badges, zone mini-map, orders by destination, regret |
+| Benchmark | `/benchmark` | 5-solver comparison, QUBO gap, 3 zoning cards |
+| Cold Chain | `/coldchain` | Device cards, temperature sparklines, excursion banner |
+| Results | `/results` | KPI cards, charts, stockout bar, ablation table |
+| AI Health | `/ai-health` | LLM stats, prompts, eval scores, guardrails |
+| Scenarios | `/scenarios` | Clock controls, scenario cards, signals table |
+| Order Detail | `/orders/:id` | DTA header, narration, QUBO bar, regret, custody, provenance |
+| Scan | `/scan/:token` | Mobile-first, QR custody scanning, state machine |
+
+### How to verify
+1. `cd web && npm run build` — zero errors
+2. `VITE_USE_FIXTURES=1 npm run dev` — all 10 pages render with fixture data
+3. Results page: 4 KPI cards, stockout bar, 2 charts, 5-row ablation table
+4. Order detail: navigate from Plan page "View" link, see all 7 sections
+5. Copilot: click FAB, send "Why didn't Hesaraghatta get insulin?" — streaming response with tool chip
+6. Sidebar: resize browser to 1366px — sidebar collapses to icons
+
+### Decisions
+- ResultsPage uses `getResultMetrics` API (not plan data) for accurate post-plan metrics
+- Ablation table highlights production config row with teal background
+- Sidebar collapse uses CSS media query (not JS state) for simplicity
+- Chart placeholders shown when data is empty rather than hiding sections
+
+### Open issues
+- Code splitting not implemented (single bundle ~985KB gzipped to 284KB — acceptable for demo)
+- Screenshots for docs/screens/ not yet captured
+
+### Requests to other lanes
+- None

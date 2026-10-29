@@ -1,4 +1,5 @@
 FROM medbal-py-base
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY services/optimizer/ .
 COPY contracts/fixtures/ /app/contracts/fixtures/

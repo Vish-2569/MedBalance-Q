@@ -1,0 +1,99 @@
+{
+  "description": "Golden evaluation questions for the MedBalance-Q copilot agent",
+  "version": 1,
+  "questions": [
+    {
+      "id": "q01",
+      "question": "Give me an overview of the district's stock situation.",
+      "expected_tools": ["get_district_overview"],
+      "expected_contains": ["facility", "shortage"],
+      "language": "en"
+    },
+    {
+      "id": "q02",
+      "question": "What is the stock position of insulin at H1?",
+      "expected_tools": ["get_stock_position"],
+      "expected_args": {"facility": "H1", "drug": "INSULIN"},
+      "expected_contains": ["effective", "shortage"],
+      "language": "en"
+    },
+    {
+      "id": "q03",
+      "question": "Why didn't Hesaraghatta get insulin?",
+      "expected_tools": ["why_not"],
+      "expected_args": {"facility": "H4", "drug": "INSULIN"},
+      "expected_contains": ["F3", "cold"],
+      "language": "en"
+    },
+    {
+      "id": "q04",
+      "question": "What if we repair Hesaraghatta's fridge?",
+      "expected_tools": ["what_if"],
+      "expected_args_contains": {"action": "repair_cold_storage", "facility": "H4"},
+      "expected_contains": ["shortage", "reduction"],
+      "language": "en"
+    },
+    {
+      "id": "q05",
+      "question": "Explain order ORD-001.",
+      "expected_tools": ["explain_order"],
+      "expected_args": {"order_id": "ORD-001"},
+      "expected_contains": ["DTA", "status"],
+      "language": "en"
+    },
+    {
+      "id": "q06",
+      "question": "Is the cold chain okay right now?",
+      "expected_tools": ["get_coldchain_status"],
+      "expected_contains": ["sensor", "temperature"],
+      "language": "en"
+    },
+    {
+      "id": "q07",
+      "question": "Show me the audit trail for order ORD-005.",
+      "expected_tools": ["get_audit_trail"],
+      "expected_args": {"order_id": "ORD-005"},
+      "expected_contains": ["audit"],
+      "language": "en"
+    },
+    {
+      "id": "q08",
+      "question": "Compare the stock policies across facilities.",
+      "expected_tools": ["compare_policies"],
+      "expected_contains": ["reserve", "target"],
+      "language": "en"
+    },
+    {
+      "id": "q09",
+      "question": "How much paracetamol does H3 have?",
+      "expected_tools": ["get_stock_position"],
+      "expected_args": {"facility": "H3", "drug": "PCM"},
+      "expected_contains": ["stock", "H3"],
+      "language": "en"
+    },
+    {
+      "id": "q10",
+      "question": "Why is H2 not receiving any transfers?",
+      "expected_tools": ["why_not"],
+      "expected_contains": ["shortage", "H2"],
+      "language": "en"
+    },
+    {
+      "id": "q11",
+      "question": "What if we close the route from W0 to H3?",
+      "expected_tools": ["what_if"],
+      "expected_args_contains": {"action": "close_route"},
+      "expected_contains": ["route"],
+      "language": "en"
+    },
+    {
+      "id": "q12",
+      "question": "H4 ನಲ್ಲಿ ಇನ್ಸುಲಿನ್ ಏಕೆ ಸಿಗಲಿಲ್ಲ?",
+      "expected_tools": ["why_not"],
+      "expected_args": {"facility": "H4", "drug": "INSULIN"},
+      "expected_contains": ["F3"],
+      "language": "kn",
+      "note": "Kannada: Why didn't H4 get insulin?"
+    }
+  ]
+}

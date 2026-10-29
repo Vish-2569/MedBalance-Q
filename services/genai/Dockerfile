@@ -1,5 +1,6 @@
 FROM medbal-py-base
 WORKDIR /app
+RUN uv pip install --system jinja2 pyyaml "google-genai>=1.0.0" redis weasyprint qrcode httpx
 COPY services/genai/ .
 COPY contracts/fixtures/ /app/contracts/fixtures/
 COPY prompts/ /app/prompts/

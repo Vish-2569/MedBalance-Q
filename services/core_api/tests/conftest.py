@@ -111,8 +111,10 @@ CREATE TABLE IF NOT EXISTS transfer_order (
     qty INTEGER NOT NULL, usable INTEGER NOT NULL, score REAL,
     status TEXT NOT NULL DEFAULT 'proposed',
     temperature_req TEXT NOT NULL DEFAULT 'ambient',
-    vehicle_id TEXT, approved_by TEXT, approved_at TEXT,
+    vehicle_id TEXT, qr_token TEXT,
+    approved_by TEXT, approved_at TEXT,
     rejected_reason TEXT,
+    dispatched_at TEXT, received_at TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS regret_entry (
@@ -124,7 +126,8 @@ CREATE TABLE IF NOT EXISTS regret_entry (
 CREATE TABLE IF NOT EXISTS custody_event (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id TEXT NOT NULL, event_type TEXT NOT NULL, actor TEXT NOT NULL,
-    timestamp TEXT NOT NULL, location TEXT, temperature_c REAL, notes TEXT,
+    qty INTEGER, timestamp TEXT NOT NULL, location TEXT,
+    temperature_c REAL, deviation TEXT, notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS stock_report (

@@ -1,17 +1,23 @@
 """Order endpoints: list, get, approve, reject."""
 from __future__ import annotations
 
+import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from medbal_common.db import session_scope
 from medbal_common.clock import now
+from medbal_common.logging import get_logger
 from medbal_common import audit, bus
 
 from ..queries import list_orders, get_order, approve_order, reject_order
 
+log = get_logger("core.orders")
+
 router = APIRouter()
+
+GENAI_URL = "http://genai:8003"
 
 
 class RejectBody(BaseModel):
@@ -60,6 +66,9 @@ async def approve(order_id: str, body: ApproveBody | None = None):
         "new_status": "approved",
         "actor": actor,
     })
+
+    _trigger_dta_generation(order)
+
     return JSONResponse(order)
 
 
@@ -86,3 +95,15 @@ async def reject(order_id: str, body: RejectBody):
         "actor": body.actor,
     })
     return JSONResponse(order)
+
+
+def _trigger_dta_generation(order: dict) -> None:
+    """Fire-and-forget DTA voucher generation via genai service."""
+    try:
+        with httpx.Client(timeout=2.0) as client:
+            client.post(
+                f"{GENAI_URL}/narrate/{order['id']}",
+                json={"order_facts": order},
+            )
+    except Exception as exc:
+        log.warning("dta_trigger_failed", order_id=order["id"], error=str(exc))

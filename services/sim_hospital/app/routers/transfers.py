@@ -16,6 +16,7 @@ class TransferItem(BaseModel):
     qty: int
     usable: int = 0
     expiry: str | None = None
+    status: str = "active"
 
 
 class TransferRequest(BaseModel):
@@ -41,6 +42,6 @@ async def receive_inbound(req: TransferRequest):
     accepted = 0
     for item in req.items:
         expiry = item.expiry or "2099-12-31"
-        stock_db.upsert_lot(item.drug_code, item.batch_no, expiry, item.qty)
+        stock_db.upsert_lot(item.drug_code, item.batch_no, expiry, item.qty, status=item.status)
         accepted += 1
     return {"accepted": accepted}

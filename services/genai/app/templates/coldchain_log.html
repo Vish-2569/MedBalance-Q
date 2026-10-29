@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 15mm; }
+  body { font-family: 'Noto Sans', Arial, sans-serif; font-size: 11pt; color: #1a1a1a; margin: 0; }
+  .header { text-align: center; border-bottom: 2px solid #2c7be5; padding-bottom: 8px; margin-bottom: 12px; }
+  .header h1 { font-size: 14pt; margin: 0; color: #2c7be5; }
+  .meta { font-size: 10pt; margin-bottom: 12px; }
+  .meta .label { font-weight: bold; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th { background: #2c7be5; color: white; padding: 5px 8px; font-size: 9pt; text-align: left; }
+  td { padding: 4px 8px; border-bottom: 1px solid #ddd; font-size: 9pt; }
+  tr:nth-child(even) { background: #f8f9fa; }
+  .breach { background: #ffe0e0 !important; color: #c00; font-weight: bold; }
+  .summary { background: #e8f4f8; padding: 8px 12px; border-radius: 4px; margin: 10px 0; font-size: 10pt; }
+  .footer { text-align: center; font-size: 8pt; color: #999; border-top: 1px solid #ddd; padding-top: 6px; margin-top: 15px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>COLD-CHAIN CONSIGNMENT LOG</h1>
+  </div>
+
+  <div class="meta">
+    <span class="label">Order ID:</span> {{ order_id }} &nbsp;|&nbsp;
+    <span class="label">DTA:</span> {{ dta_number }}<br>
+    <span class="label">Drug:</span> {{ drug_name }} ({{ drug_code }}) &nbsp;|&nbsp;
+    <span class="label">Batch:</span> {{ batch_no }}<br>
+    <span class="label">Route:</span> {{ src_facility }} &rarr; {{ dst_facility }} &nbsp;|&nbsp;
+    <span class="label">Vehicle:</span> {{ vehicle }}
+  </div>
+
+  <div class="summary">
+    <strong>Temperature Range:</strong> {{ temp_min }}&deg;C &ndash; {{ temp_max }}&deg;C &nbsp;|&nbsp;
+    <strong>Required:</strong> 2&ndash;8&deg;C &nbsp;|&nbsp;
+    <strong>Readings:</strong> {{ reading_count }} &nbsp;|&nbsp;
+    <strong>Breaches:</strong> {{ breach_count }}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Timestamp</th>
+        <th>Temperature (&deg;C)</th>
+        <th>Humidity (%)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in readings %}
+      <tr class="{{ 'breach' if r.breach else '' }}">
+        <td>{{ loop.index }}</td>
+        <td>{{ r.timestamp }}</td>
+        <td>{{ r.temp_c }}</td>
+        <td>{{ r.humidity or '-' }}</td>
+        <td>{{ 'BREACH' if r.breach else 'OK' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Synthetic demo data &mdash; MedBalance-Q Cold Chain Monitoring
+  </div>
+</body>
+</html>

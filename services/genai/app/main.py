@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import asynccontextmanager
+from typing import Any
+
 from medbal_common.fastapi_base import create_app as _create_base
 from medbal_common.logging import get_logger
 from medbal_common.settings import settings
@@ -7,6 +11,7 @@ from medbal_common.settings import settings
 from . import prompt_registry
 from .cache import LLMCache
 from .llm_service import LLMService
+from .narration import narrate_order
 from .providers import FakeProvider, GeminiProvider, LLMProvider
 from .router import router
 
@@ -43,6 +48,27 @@ def _build_engine():
         return None
 
 
+async def _handle_plan_event(msg: dict[str, Any], app_ref: Any) -> None:
+    """Batch-narrate orders when a plan completes or is revised."""
+    plan_id = msg.get("plan_id", "")
+    transfers = msg.get("transfers", [])
+    if not transfers:
+        log.info("plan_event_no_transfers", plan_id=plan_id)
+        return
+
+    svc = app_ref.state.llm_service
+    for order_facts in transfers:
+        try:
+            result = await narrate_order(svc, order_facts)
+            log.info(
+                "batch_narration",
+                order_id=order_facts.get("order_id", ""),
+                grounding_ok=result.get("grounding_ok"),
+            )
+        except Exception as exc:
+            log.warning("batch_narration_failed", error=str(exc))
+
+
 def create_app():
     app = _create_base("genai", keys=["GEMINI_API_KEY"])
 
@@ -59,11 +85,34 @@ def create_app():
         cache=cache,
         db_engine=engine,
     )
+    app.state.db_engine = engine
     log.info("llm_service_ready", provider=provider.name())
 
     if settings.USE_FIXTURES:
         from medbal_common.fixtures import serve
         serve(app, "genai")
+
+    try:
+        from medbal_common.bus import stream_lifespan
+
+        plan_handler = lambda msg: asyncio.ensure_future(
+            _handle_plan_event(msg, app)
+        )
+
+        @asynccontextmanager
+        async def lifespan(a):
+            async with stream_lifespan(
+                "plan.completed", "genai-narrate", "genai-0", plan_handler
+            ):
+                async with stream_lifespan(
+                    "plan.revised", "genai-narrate-rev", "genai-0", plan_handler
+                ):
+                    yield
+
+        app.router.lifespan_context = lifespan
+        log.info("narration_consumer_registered")
+    except Exception as exc:
+        log.warning("bus_consumer_setup_failed", error=str(exc))
 
     app.include_router(router)
     return app
