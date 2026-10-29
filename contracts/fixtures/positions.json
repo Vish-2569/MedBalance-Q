@@ -1,0 +1,11 @@
+[
+  {"facility_id": "W0", "drug_code": "PARA500", "effective_stock": 2000, "at_risk": 0, "reserve": 200, "shortage": 0, "consumption_rate": 0.0, "target_days": 0},
+  {"facility_id": "W0", "drug_code": "INSUL", "effective_stock": 50, "at_risk": 0, "reserve": 5, "shortage": 0, "consumption_rate": 0.0, "target_days": 0},
+  {"facility_id": "H1", "drug_code": "PARA500", "effective_stock": 100, "at_risk": 50, "reserve": 60, "shortage": 80, "consumption_rate": 8.0, "target_days": 30},
+  {"facility_id": "H1", "drug_code": "INSUL", "effective_stock": 10, "at_risk": 5, "reserve": 6, "shortage": 8, "consumption_rate": 0.5, "target_days": 30},
+  {"facility_id": "H2", "drug_code": "PARA500", "effective_stock": 50, "at_risk": 0, "reserve": 60, "shortage": 130, "consumption_rate": 6.0, "target_days": 30},
+  {"facility_id": "H2", "drug_code": "INSUL", "effective_stock": 0, "at_risk": 0, "reserve": 0, "shortage": 15, "consumption_rate": 0.5, "target_days": 30},
+  {"facility_id": "H3", "drug_code": "AMOX500", "effective_stock": 0, "at_risk": 0, "reserve": 0, "shortage": 120, "consumption_rate": 4.0, "target_days": 30},
+  {"facility_id": "H3", "drug_code": "ORS", "effective_stock": 20, "at_risk": 10, "reserve": 50, "shortage": 100, "consumption_rate": 5.0, "target_days": 30},
+  {"facility_id": "H4", "drug_code": "PARA500", "effective_stock": 80, "at_risk": 0, "reserve": 30, "shortage": 40, "consumption_rate": 4.0, "target_days": 30}
+]

@@ -1,0 +1,108 @@
+# MedBalance-Q — Simulated District: Bengaluru Urban
+# All names prefixed SIM- to indicate synthetic data.
+
+district:
+  name: SIM-Bengaluru Urban District
+  state: Karnataka
+  sim_start_date: "2026-11-01"
+
+facilities:
+  - id: W0
+    name: SIM-District Drug Warehouse
+    level: WH
+    lat: 12.970
+    lon: 77.590
+    cold_storage_ok: true
+    cold_storage_note: null
+    report_format: fhir
+    report_lang: en
+    taluk: Bengaluru South
+
+  - id: H1
+    name: SIM-DH Jayanagar
+    level: DH
+    lat: 12.925
+    lon: 77.593
+    cold_storage_ok: true
+    cold_storage_note: null
+    report_format: fhir
+    report_lang: en
+    taluk: Bengaluru South
+
+  - id: H2
+    name: SIM-TGH Anekal
+    level: TH
+    lat: 12.711
+    lon: 77.696
+    cold_storage_ok: true
+    cold_storage_note: null
+    report_format: csv
+    report_lang: en
+    taluk: Anekal
+
+  - id: H3
+    name: SIM-CHC Yelahanka
+    level: CHC
+    lat: 13.100
+    lon: 77.596
+    cold_storage_ok: true
+    cold_storage_note: null
+    report_format: chat
+    report_lang: kn+en
+    taluk: Yelahanka
+
+  - id: H4
+    name: SIM-PHC Hesaraghatta
+    level: PHC
+    lat: 13.140
+    lon: 77.480
+    cold_storage_ok: false
+    cold_storage_note: ILR under repair
+    report_format: text
+    report_lang: en
+    taluk: Yelahanka
+
+# Scale-mode taluks (for future expansion)
+taluks:
+  - name: Bengaluru South
+    facilities: [W0, H1]
+  - name: Anekal
+    facilities: [H2]
+  - name: Yelahanka
+    facilities: [H3, H4]
+
+vehicles:
+  - id: AV-01
+    name: SIM-Ambient Van Alpha
+    type: ambient_van
+    cold_chain: false
+    capacity_units: 10000
+    sensor_ids: []
+
+  - id: AV-02
+    name: SIM-Ambient Van Beta
+    type: ambient_van
+    cold_chain: false
+    capacity_units: 8000
+    sensor_ids: []
+
+  - id: CV-01
+    name: SIM-Cold Van Gamma
+    type: cold_van
+    cold_chain: true
+    capacity_units: 5000
+    sensor_ids: [sensor-cv01-a, sensor-cv01-b]
+
+  - id: CV-02
+    name: SIM-Cold Van Delta
+    type: cold_van
+    cold_chain: true
+    capacity_units: 5000
+    sensor_ids: [sensor-cv02-a]
+
+  - id: TW-01
+    name: SIM-Two Wheeler Express
+    type: two_wheeler
+    cold_chain: false
+    capacity_units: 500
+    sensor_ids: []

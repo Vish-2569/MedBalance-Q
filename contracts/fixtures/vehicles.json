@@ -1,0 +1,4 @@
+[
+  {"id": "V1", "name": "Cold Van Alpha", "cold_chain": true, "capacity_units": 5000},
+  {"id": "V2", "name": "Utility Van Beta", "cold_chain": false, "capacity_units": 10000}
+]

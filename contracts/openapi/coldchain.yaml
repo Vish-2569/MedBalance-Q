@@ -1,0 +1,96 @@
+openapi: 3.1.0
+info:
+  title: MedBalance-Q Cold Chain
+  version: 0.1.0
+  description: MQTT consumer, excursion rules, device and route status.
+
+paths:
+  /status:
+    get:
+      operationId: getStatus
+      summary: All device statuses
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceStatus"
+
+  /devices/{id}/telemetry:
+    get:
+      operationId: getDeviceTelemetry
+      summary: Telemetry history for a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TelemetryPoint"
+
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+components:
+  schemas:
+    DeviceStatus:
+      type: object
+      required: [device_id, temperature_c, battery_pct, last_seen, alert]
+      properties:
+        device_id:
+          type: string
+        vehicle_id:
+          type: ["string", "null"]
+        temperature_c:
+          type: number
+        battery_pct:
+          type: integer
+        last_seen:
+          type: string
+          format: date-time
+        alert:
+          type: boolean
+
+    TelemetryPoint:
+      type: object
+      required: [timestamp, temperature_c]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        temperature_c:
+          type: number
+        humidity_pct:
+          type: ["number", "null"]

@@ -1,0 +1,8 @@
+{
+  "facility_id": "H3",
+  "drug_code": "INSUL",
+  "reasons": [
+    "F3: no cold chain route from W0 to H3",
+    "F3: H3 has no cold storage"
+  ]
+}

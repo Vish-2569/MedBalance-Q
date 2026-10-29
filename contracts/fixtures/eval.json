@@ -1,0 +1,11 @@
+{
+  "id": "eval-001",
+  "scenario_id": "baseline",
+  "metrics": {
+    "shortage_reduction": 0.72,
+    "expiry_avoided": 215,
+    "feasibility_rate": 1.0,
+    "total_cost_inr": 1250.00
+  },
+  "status": "completed"
+}

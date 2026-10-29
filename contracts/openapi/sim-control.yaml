@@ -1,0 +1,195 @@
+openapi: 3.1.0
+info:
+  title: MedBalance-Q Sim Control
+  version: 0.1.0
+  description: Simulation clock, scenarios, reset, outbreak/campaign signals.
+
+paths:
+  /clock:
+    get:
+      operationId: getClock
+      summary: Current simulation clock
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimClock"
+
+  /clock/start:
+    post:
+      operationId: startClock
+      summary: Start the simulation clock
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimClock"
+
+  /clock/pause:
+    post:
+      operationId: pauseClock
+      summary: Pause the simulation clock
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimClock"
+
+  /clock/speed:
+    post:
+      operationId: setClockSpeed
+      summary: Set simulation speed multiplier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [speed]
+              properties:
+                speed:
+                  type: number
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimClock"
+
+  /scenario/{name}:
+    post:
+      operationId: activateScenario
+      summary: Activate a named scenario
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [activated]
+                properties:
+                  activated:
+                    type: string
+
+  /reset:
+    post:
+      operationId: resetSim
+      summary: Reset simulation to initial state
+      parameters:
+        - name: seed
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [seed, sim_date]
+                properties:
+                  seed:
+                    type: integer
+                  sim_date:
+                    type: string
+                    format: date
+
+  /signals:
+    get:
+      operationId: getSignals
+      summary: List fired signals (outbreaks, campaigns, etc.)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Signal"
+
+  /scenarios:
+    get:
+      operationId: listScenarios
+      summary: List available scenarios
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Scenario"
+
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+components:
+  schemas:
+    SimClock:
+      type: object
+      required: [sim_date, sim_time, speed, running]
+      properties:
+        sim_date:
+          type: string
+          format: date
+        sim_time:
+          type: string
+          format: date-time
+        speed:
+          type: number
+        running:
+          type: boolean
+
+    Scenario:
+      type: object
+      required: [name, description]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    Signal:
+      type: object
+      required: [type, params, fired_at]
+      properties:
+        type:
+          type: string
+        params:
+          type: object
+        fired_at:
+          type: string
+          format: date-time

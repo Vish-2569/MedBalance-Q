@@ -1,0 +1,72 @@
+[
+  {
+    "facility_id": "H1",
+    "drug_code": "PARA500",
+    "horizon_days": 30,
+    "daily_rate": 8.0,
+    "method": "holt_winters_llm",
+    "confidence": 0.85,
+    "context_multiplier": 1.2,
+    "adjusted_rate": 9.6
+  },
+  {
+    "facility_id": "H1",
+    "drug_code": "INSUL",
+    "horizon_days": 30,
+    "daily_rate": 0.5,
+    "method": "holt_winters",
+    "confidence": 0.78,
+    "context_multiplier": 1.0,
+    "adjusted_rate": 0.5
+  },
+  {
+    "facility_id": "H2",
+    "drug_code": "PARA500",
+    "horizon_days": 30,
+    "daily_rate": 6.0,
+    "method": "holt_winters",
+    "confidence": 0.82,
+    "context_multiplier": 1.0,
+    "adjusted_rate": 6.0
+  },
+  {
+    "facility_id": "H2",
+    "drug_code": "INSUL",
+    "horizon_days": 30,
+    "daily_rate": 0.5,
+    "method": "holt_winters",
+    "confidence": 0.75,
+    "context_multiplier": 1.0,
+    "adjusted_rate": 0.5
+  },
+  {
+    "facility_id": "H3",
+    "drug_code": "AMOX500",
+    "horizon_days": 30,
+    "daily_rate": 4.0,
+    "method": "holt_winters_llm",
+    "confidence": 0.80,
+    "context_multiplier": 1.2,
+    "adjusted_rate": 4.8
+  },
+  {
+    "facility_id": "H3",
+    "drug_code": "ORS",
+    "horizon_days": 30,
+    "daily_rate": 5.0,
+    "method": "holt_winters",
+    "confidence": 0.88,
+    "context_multiplier": 1.0,
+    "adjusted_rate": 5.0
+  },
+  {
+    "facility_id": "H4",
+    "drug_code": "PARA500",
+    "horizon_days": 30,
+    "daily_rate": 4.0,
+    "method": "holt_winters",
+    "confidence": 0.83,
+    "context_multiplier": 1.0,
+    "adjusted_rate": 4.0
+  }
+]

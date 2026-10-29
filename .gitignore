@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+dist/
+.ruff_cache/
+evidence/llm_cache/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/

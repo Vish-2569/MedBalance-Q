@@ -1,0 +1,16 @@
+{
+  "hospital_id": "H1",
+  "name": "SIM-City Hospital",
+  "sim_date": "2026-11-01",
+  "lots": [
+    {"drug_code": "PARA500", "batch_no": "B-PA-2026-002", "expiry": "2026-11-20", "qty": 150},
+    {"drug_code": "AMOX500", "batch_no": "B-AX-2026-002", "expiry": "2027-02-28", "qty": 200},
+    {"drug_code": "INSUL", "batch_no": "B-IN-2026-002", "expiry": "2026-11-30", "qty": 15}
+  ],
+  "consumption_today": [
+    {"drug_code": "PARA500", "qty": 8},
+    {"drug_code": "INSUL", "qty": 1}
+  ],
+  "pending_transfers_in": [],
+  "pending_transfers_out": []
+}

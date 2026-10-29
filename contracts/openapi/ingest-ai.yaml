@@ -1,0 +1,214 @@
+openapi: 3.1.0
+info:
+  title: MedBalance-Q Ingest AI
+  version: 0.1.0
+  description: |
+    Hospital report adapters, LLM-based extraction with grounding,
+    anomaly gate, and human review queue.
+
+paths:
+  /ingest/{facility_code}:
+    post:
+      operationId: ingestReport
+      summary: Ingest a stock report from a facility
+      parameters:
+        - name: facility_code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StockReport"
+      responses:
+        "200":
+          description: Extracted report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockReport"
+
+  /pull/run:
+    post:
+      operationId: pullRun
+      summary: Trigger a pull from all configured hospitals
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [triggered, facilities]
+                properties:
+                  triggered:
+                    type: integer
+                  facilities:
+                    type: array
+                    items:
+                      type: string
+
+  /reports:
+    get:
+      operationId: listReports
+      summary: List ingested stock reports
+      parameters:
+        - name: facility
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: since
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockReport"
+
+  /reviews:
+    get:
+      operationId: listReviews
+      summary: List items flagged for human review
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReviewItem"
+
+  /reviews/{id}/resolve:
+    post:
+      operationId: resolveReview
+      summary: Resolve a flagged review item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [accept, fix, reject]
+                fix:
+                  type: ["object", "null"]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+components:
+  schemas:
+    StockReport:
+      type: object
+      required: [facility_code, reported_at, format, items]
+      properties:
+        facility_code:
+          type: string
+        reported_at:
+          type: string
+          format: date-time
+        format:
+          type: string
+        raw_text:
+          type: ["string", "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExtractionItem"
+
+    ExtractionItem:
+      type: object
+      required: [drug_name_raw, confidence, flags]
+      properties:
+        drug_code:
+          type: ["string", "null"]
+        drug_name_raw:
+          type: string
+        batch_no:
+          type: ["string", "null"]
+        expiry:
+          type: ["string", "null"]
+          format: date
+        qty:
+          type: ["integer", "null"]
+        unit:
+          type: ["string", "null"]
+        confidence:
+          type: number
+        flags:
+          type: array
+          items:
+            type: string
+
+    ReviewItem:
+      type: object
+      required: [id, report_id, item_index, extraction, status]
+      properties:
+        id:
+          type: string
+        report_id:
+          type: string
+        item_index:
+          type: integer
+        extraction:
+          $ref: "#/components/schemas/ExtractionItem"
+        suggested_fix:
+          type: ["object", "null"]
+        status:
+          type: string
+          enum: [pending, accepted, fixed, rejected]

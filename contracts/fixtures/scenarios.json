@@ -1,0 +1,19 @@
+[
+  {
+    "name": "baseline",
+    "description": "Normal consumption patterns across all facilities",
+    "active": true,
+    "params": {}
+  },
+  {
+    "name": "outbreak-h3",
+    "description": "ORS demand spike at H3 due to gastroenteritis outbreak",
+    "active": false,
+    "params": {
+      "facility_id": "H3",
+      "drug_code": "ORS",
+      "demand_multiplier": 3.0,
+      "duration_days": 14
+    }
+  }
+]

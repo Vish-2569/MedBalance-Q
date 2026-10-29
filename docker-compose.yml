@@ -1,0 +1,294 @@
+networks:
+  medbal:
+    driver: bridge
+
+volumes:
+  pg_data:
+  redis_data:
+  mosquitto_data:
+
+x-healthcheck-python: &hc-python
+  interval: 5s
+  timeout: 3s
+  retries: 5
+  start_period: 10s
+
+x-service-base: &service-base
+  env_file: .env
+  networks: [medbal]
+  restart: unless-stopped
+
+services:
+  # ---------- build-only: base image ----------
+  py-base:
+    build:
+      context: .
+      dockerfile: docker/py-base.Dockerfile
+    image: medbal-py-base
+    profiles: ["build"]
+    entrypoint: ["echo", "base image built"]
+
+  # ---------- infrastructure ----------
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: medbal
+      POSTGRES_PASSWORD: medbal
+      POSTGRES_DB: medbal
+    ports: ["5432:5432"]
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medbal"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles: [core, full]
+    networks: [medbal]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles: [core, full]
+    networks: [medbal]
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports: ["1883:1883"]
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -t healthcheck -m ok -q 0 2>/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles: [core, full]
+    networks: [medbal]
+    restart: unless-stopped
+
+  # ---------- core profile ----------
+  core-api:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/core_api/Dockerfile
+    image: medbal-core-api
+    ports: ["8001:8001"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      <<: *hc-python
+    profiles: [core, full]
+
+  gateway:
+    build:
+      context: ./services/gateway
+    image: medbal-gateway
+    ports: ["8080:8080"]
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+    depends_on:
+      core-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    profiles: [core, full]
+    networks: [medbal]
+    restart: unless-stopped
+
+  # ---------- ai profile ----------
+  ingest-ai:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/ingest_ai/Dockerfile
+    image: medbal-ingest-ai
+    ports: ["8002:8002"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      <<: *hc-python
+    profiles: [ai, full]
+
+  genai:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/genai/Dockerfile
+    image: medbal-genai
+    ports: ["8003:8003"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      <<: *hc-python
+    profiles: [ai, full]
+
+  forecast:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/forecast/Dockerfile
+    image: medbal-forecast
+    ports: ["8004:8004"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8004/health')"]
+      <<: *hc-python
+    profiles: [ai, full]
+
+  # ---------- opt profile ----------
+  optimizer:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/optimizer/Dockerfile
+    image: medbal-optimizer
+    ports: ["8005:8005"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      <<: *hc-python
+    profiles: [opt, full]
+
+  coldchain:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/coldchain/Dockerfile
+    image: medbal-coldchain
+    ports: ["8006:8006"]
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8006/health')"]
+      <<: *hc-python
+    profiles: [opt, full]
+
+  # ---------- sim profile ----------
+  sim-control:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/sim_control/Dockerfile
+    image: medbal-sim-control
+    ports: ["8100:8100"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
+      <<: *hc-python
+    profiles: [sim, full]
+
+  sim-hospital-h1:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/sim_hospital/Dockerfile
+    image: medbal-sim-hospital
+    ports: ["8101:8101"]
+    environment:
+      HOSPITAL_ID: h1
+    depends_on:
+      redis:
+        condition: service_healthy
+      sim-control:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8101/health')"]
+      <<: *hc-python
+    profiles: [sim, full]
+
+  sim-hospital-h2:
+    <<: *service-base
+    image: medbal-sim-hospital
+    ports: ["8102:8101"]
+    environment:
+      HOSPITAL_ID: h2
+    depends_on:
+      redis:
+        condition: service_healthy
+      sim-control:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8101/health')"]
+      <<: *hc-python
+    profiles: [sim, full]
+
+  sim-hospital-h3:
+    <<: *service-base
+    image: medbal-sim-hospital
+    ports: ["8103:8101"]
+    environment:
+      HOSPITAL_ID: h3
+    depends_on:
+      redis:
+        condition: service_healthy
+      sim-control:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8101/health')"]
+      <<: *hc-python
+    profiles: [sim, full]
+
+  sim-hospital-h4:
+    <<: *service-base
+    image: medbal-sim-hospital
+    ports: ["8104:8101"]
+    environment:
+      HOSPITAL_ID: h4
+    depends_on:
+      redis:
+        condition: service_healthy
+      sim-control:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8101/health')"]
+      <<: *hc-python
+    profiles: [sim, full]
+
+  sensors:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: services/sensors/Dockerfile
+    image: medbal-sensors
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    profiles: [sim, full]

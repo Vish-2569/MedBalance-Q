@@ -1,0 +1,18 @@
+[
+  {
+    "device_id": "sensor-01",
+    "vehicle_id": "V1",
+    "temperature_c": 4.2,
+    "battery_pct": 87,
+    "last_seen": "2026-11-01T10:28:00+05:30",
+    "alert": false
+  },
+  {
+    "device_id": "sensor-02",
+    "vehicle_id": "V1",
+    "temperature_c": 5.1,
+    "battery_pct": 92,
+    "last_seen": "2026-11-01T10:28:00+05:30",
+    "alert": false
+  }
+]

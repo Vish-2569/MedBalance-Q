@@ -1,0 +1,14 @@
+[
+  {
+    "id": "rev-001",
+    "report_id": "rpt-001",
+    "item_index": 0,
+    "anomaly_type": "none",
+    "status": "auto_approved",
+    "drug_code": "PARA500",
+    "extracted_qty": 150,
+    "resolved_qty": 150,
+    "resolved_by": "system",
+    "resolved_at": "2026-11-01T09:01:00+05:30"
+  }
+]

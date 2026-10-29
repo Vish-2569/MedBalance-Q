@@ -1,0 +1,7 @@
+[
+  {"id": "W0", "name": "SIM-District Warehouse", "type": "warehouse", "lat": 12.9716, "lon": 77.5946, "cold_storage": true},
+  {"id": "H1", "name": "SIM-City Hospital", "type": "hospital", "lat": 12.9352, "lon": 77.6245, "cold_storage": true},
+  {"id": "H2", "name": "SIM-General Hospital", "type": "hospital", "lat": 12.9611, "lon": 77.5683, "cold_storage": true},
+  {"id": "H3", "name": "SIM-Community Health Centre", "type": "hospital", "lat": 13.0358, "lon": 77.5970, "cold_storage": false},
+  {"id": "H4", "name": "SIM-Primary Health Centre", "type": "hospital", "lat": 12.8990, "lon": 77.6510, "cold_storage": false}
+]

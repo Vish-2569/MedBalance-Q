@@ -1,0 +1,16 @@
+[
+  {"src_facility_id": "W0", "dst_facility_id": "H1", "distance_km": 8.5, "transit_hours": 0.5, "cold_chain": true},
+  {"src_facility_id": "H1", "dst_facility_id": "W0", "distance_km": 8.5, "transit_hours": 0.5, "cold_chain": true},
+  {"src_facility_id": "W0", "dst_facility_id": "H2", "distance_km": 6.2, "transit_hours": 0.4, "cold_chain": true},
+  {"src_facility_id": "H2", "dst_facility_id": "W0", "distance_km": 6.2, "transit_hours": 0.4, "cold_chain": true},
+  {"src_facility_id": "W0", "dst_facility_id": "H3", "distance_km": 12.1, "transit_hours": 0.8, "cold_chain": false},
+  {"src_facility_id": "H3", "dst_facility_id": "W0", "distance_km": 12.1, "transit_hours": 0.8, "cold_chain": false},
+  {"src_facility_id": "W0", "dst_facility_id": "H4", "distance_km": 10.3, "transit_hours": 0.7, "cold_chain": false},
+  {"src_facility_id": "H4", "dst_facility_id": "W0", "distance_km": 10.3, "transit_hours": 0.7, "cold_chain": false},
+  {"src_facility_id": "H1", "dst_facility_id": "H2", "distance_km": 7.0, "transit_hours": 0.5, "cold_chain": false},
+  {"src_facility_id": "H2", "dst_facility_id": "H1", "distance_km": 7.0, "transit_hours": 0.5, "cold_chain": false},
+  {"src_facility_id": "H1", "dst_facility_id": "H3", "distance_km": 14.2, "transit_hours": 1.0, "cold_chain": false},
+  {"src_facility_id": "H3", "dst_facility_id": "H1", "distance_km": 14.2, "transit_hours": 1.0, "cold_chain": false},
+  {"src_facility_id": "H2", "dst_facility_id": "H3", "distance_km": 9.8, "transit_hours": 0.7, "cold_chain": false},
+  {"src_facility_id": "H3", "dst_facility_id": "H2", "distance_km": 9.8, "transit_hours": 0.7, "cold_chain": false}
+]

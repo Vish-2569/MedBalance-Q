@@ -1,0 +1,722 @@
+openapi: 3.1.0
+info:
+  title: MedBalance-Q Core API
+  version: 0.1.0
+  description: |
+    Facilities, drugs, lots, positions, orders, approvals, custody chain,
+    audit log and SSE event stream.
+
+paths:
+  /facilities:
+    get:
+      operationId: listFacilities
+      summary: List all facilities
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Facility"
+
+  /drugs:
+    get:
+      operationId: listDrugs
+      summary: List all drugs
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Drug"
+
+  /routes:
+    get:
+      operationId: listRoutes
+      summary: List all routes
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Route"
+
+  /vehicles:
+    get:
+      operationId: listVehicles
+      summary: List all vehicles
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vehicle"
+
+  /lots:
+    get:
+      operationId: listLots
+      summary: List lots, optionally filtered
+      parameters:
+        - name: facility
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: drug
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lot"
+
+  /lots/upsert-batch:
+    post:
+      operationId: upsertLots
+      summary: Create or update lots in batch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/Lot"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [upserted]
+                properties:
+                  upserted:
+                    type: integer
+
+  /positions:
+    get:
+      operationId: listPositions
+      summary: Inventory positions
+      parameters:
+        - name: facility
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: drug
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Position"
+
+  /snapshot:
+    get:
+      operationId: getSnapshot
+      summary: Full snapshot for the optimizer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Snapshot"
+
+  /plans:
+    post:
+      operationId: persistPlan
+      summary: Persist a plan run with its orders and regret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan, candidates, orders, regret]
+              properties:
+                plan:
+                  $ref: "#/components/schemas/PlanRun"
+                candidates:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Candidate"
+                orders:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TransferOrder"
+                regret:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/RegretEntry"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [plan_id]
+                properties:
+                  plan_id:
+                    type: string
+
+  /orders:
+    get:
+      operationId: listOrders
+      summary: List transfer orders
+      parameters:
+        - name: plan_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TransferOrder"
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      summary: Get a single transfer order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferOrder"
+
+  /orders/{id}/approve:
+    post:
+      operationId: approveOrder
+      summary: Approve a proposed order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferOrder"
+
+  /orders/{id}/reject:
+    post:
+      operationId: rejectOrder
+      summary: Reject a proposed order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferOrder"
+
+  /custody/scan:
+    post:
+      operationId: scanCustody
+      summary: Record a custody event (scan)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustodyEvent"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustodyEvent"
+
+  /custody/{order_id}:
+    get:
+      operationId: getCustodyChain
+      summary: Full custody chain for an order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustodyEvent"
+
+  /audit/verify:
+    get:
+      operationId: verifyAudit
+      summary: Verify audit-log hash chain integrity
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditVerify"
+
+  /audit:
+    get:
+      operationId: queryAudit
+      summary: Query audit entries
+      parameters:
+        - name: entity
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEntry"
+
+  /events:
+    get:
+      operationId: streamEvents
+      summary: Server-Sent Events stream
+      description: |
+        SSE stream. Events carry a JSON `data` field and a `type` matching one
+        of the Redis Streams event names (e.g. order.status, plan.completed).
+        The connection stays open; the client reconnects on drop.
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream: {}
+
+  /provenance/{order_id}:
+    get:
+      operationId: getProvenance
+      summary: Full provenance bundle for an order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [order, custody, audit]
+                properties:
+                  order:
+                    $ref: "#/components/schemas/TransferOrder"
+                  custody:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CustodyEvent"
+                  audit:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AuditEntry"
+
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+components:
+  schemas:
+    Facility:
+      type: object
+      required: [id, name, type, lat, lon, cold_storage]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [warehouse, hospital]
+        lat:
+          type: number
+        lon:
+          type: number
+        cold_storage:
+          type: boolean
+
+    Drug:
+      type: object
+      required: [code, name, ven, unit, pack_size, cold_chain, controlled, min_residual_days]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        ven:
+          type: string
+          enum: [V, E, N]
+        unit:
+          type: string
+        pack_size:
+          type: integer
+        cold_chain:
+          type: boolean
+        controlled:
+          type: boolean
+        min_residual_days:
+          type: integer
+
+    Lot:
+      type: object
+      required: [facility_id, drug_code, batch_no, expiry, qty]
+      properties:
+        facility_id:
+          type: string
+        drug_code:
+          type: string
+        batch_no:
+          type: string
+        expiry:
+          type: string
+          format: date
+        qty:
+          type: integer
+
+    Position:
+      type: object
+      required: [facility_id, drug_code, effective_stock, at_risk, reserve, shortage, consumption_rate, target_days]
+      properties:
+        facility_id:
+          type: string
+        drug_code:
+          type: string
+        effective_stock:
+          type: integer
+        at_risk:
+          type: integer
+        reserve:
+          type: integer
+        shortage:
+          type: integer
+        consumption_rate:
+          type: number
+        target_days:
+          type: integer
+
+    Route:
+      type: object
+      required: [src_facility_id, dst_facility_id, distance_km, transit_hours, cold_chain]
+      properties:
+        src_facility_id:
+          type: string
+        dst_facility_id:
+          type: string
+        distance_km:
+          type: number
+        transit_hours:
+          type: number
+        cold_chain:
+          type: boolean
+
+    Vehicle:
+      type: object
+      required: [id, name, cold_chain, capacity_units]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        cold_chain:
+          type: boolean
+        capacity_units:
+          type: integer
+
+    TransferOrder:
+      type: object
+      required: [id, dta_number, plan_id, src_facility_id, dst_facility_id, drug_code, drug_name, batch_no, qty, usable, score, status, temperature_req, created_at]
+      properties:
+        id:
+          type: string
+        dta_number:
+          type: string
+        plan_id:
+          type: string
+        src_facility_id:
+          type: string
+        dst_facility_id:
+          type: string
+        drug_code:
+          type: string
+        drug_name:
+          type: string
+        batch_no:
+          type: string
+        qty:
+          type: integer
+        usable:
+          type: integer
+        score:
+          type: number
+        status:
+          type: string
+          enum: [proposed, approved, rejected, dispatched, in_transit, delivered, cancelled]
+        temperature_req:
+          type: string
+          enum: [ambient, cold_chain]
+        created_at:
+          type: string
+          format: date-time
+
+    TransferOrderItem:
+      type: object
+      required: [drug_code, drug_name, batch_no, qty, usable, expiry]
+      properties:
+        drug_code:
+          type: string
+        drug_name:
+          type: string
+        batch_no:
+          type: string
+        qty:
+          type: integer
+        usable:
+          type: integer
+        expiry:
+          type: string
+          format: date
+
+    CustodyEvent:
+      type: object
+      required: [order_id, event_type, actor, timestamp]
+      properties:
+        order_id:
+          type: string
+        event_type:
+          type: string
+          enum: [created, picked, dispatched, checkpoint, delivered, exception]
+        actor:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        location:
+          type: ["string", "null"]
+        temperature_c:
+          type: ["number", "null"]
+        notes:
+          type: ["string", "null"]
+
+    AuditEntry:
+      type: object
+      required: [seq, actor, action, entity, entity_id, payload, hash, created_at]
+      properties:
+        seq:
+          type: integer
+        actor:
+          type: string
+        action:
+          type: string
+        entity:
+          type: string
+        entity_id:
+          type: string
+        payload:
+          type: object
+        hash:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AuditVerify:
+      type: object
+      required: [ok, entries, first_bad_seq]
+      properties:
+        ok:
+          type: boolean
+        entries:
+          type: integer
+        first_bad_seq:
+          type: ["integer", "null"]
+
+    PlanRun:
+      type: object
+      required: [id, created_at, mode, solver_tier, variables, constraints, transfers, shortage_reduction, expiry_avoided, cost_inr]
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        mode:
+          type: string
+          enum: [live, whatif, eval]
+        solver_tier:
+          type: string
+        energy:
+          type: ["number", "null"]
+        gap_to_milp:
+          type: ["number", "null"]
+        variables:
+          type: integer
+        constraints:
+          type: integer
+        transfers:
+          type: integer
+        shortage_reduction:
+          type: number
+        expiry_avoided:
+          type: integer
+        cost_inr:
+          type: number
+
+    Candidate:
+      type: object
+      required: [chunk_id, lot, destination_id, drug_code, usable, score, feasibility]
+      properties:
+        chunk_id:
+          type: string
+        lot:
+          $ref: "#/components/schemas/Lot"
+        destination_id:
+          type: string
+        drug_code:
+          type: string
+        usable:
+          type: integer
+        score:
+          type: number
+        feasibility:
+          type: object
+          description: "Keys F1..F6, each boolean"
+
+    RegretEntry:
+      type: object
+      required: [order_id, reason, score_delta]
+      properties:
+        order_id:
+          type: string
+        reason:
+          type: string
+        score_delta:
+          type: number
+        alternative:
+          type: ["string", "null"]
+
+    Snapshot:
+      type: object
+      required: [facilities, drugs, lots, positions, routes, vehicles]
+      properties:
+        facilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Facility"
+        drugs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Drug"
+        lots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Lot"
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Position"
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Route"
+        vehicles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Vehicle"

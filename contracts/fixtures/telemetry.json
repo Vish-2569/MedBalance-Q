@@ -1,0 +1,7 @@
+[
+  {"device_id": "sensor-01", "timestamp": "2026-11-01T10:00:00+05:30", "temperature_c": 4.0, "humidity_pct": 45},
+  {"device_id": "sensor-01", "timestamp": "2026-11-01T10:05:00+05:30", "temperature_c": 4.1, "humidity_pct": 44},
+  {"device_id": "sensor-01", "timestamp": "2026-11-01T10:10:00+05:30", "temperature_c": 4.3, "humidity_pct": 46},
+  {"device_id": "sensor-01", "timestamp": "2026-11-01T10:15:00+05:30", "temperature_c": 4.2, "humidity_pct": 45},
+  {"device_id": "sensor-01", "timestamp": "2026-11-01T10:20:00+05:30", "temperature_c": 4.2, "humidity_pct": 45}
+]

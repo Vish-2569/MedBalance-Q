@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Why was insulin sent to H2?"
+    },
+    {
+      "role": "assistant",
+      "content": "H2 has a shortage of 15 vials of Insulin Human 40IU/ml. W0 holds lot B-IN-2026-001 with 50 vials expiring 2027-01-31. After accounting for transit time (0.4h) and H2's existing stock, 28 vials are usable before expiry at H2's consumption rate of 0.5 vials/day. The cold chain route W0→H2 is available with vehicle Cold Van Alpha."
+    }
+  ]
+}

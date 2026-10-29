@@ -1,0 +1,218 @@
+# MedBalance-Q — Drug Master List
+# 13 essential medicines for the simulated district.
+# VEN: V=Vital, E=Essential, N=Non-essential
+# Quantities in base units (tablet, vial, sachet, ml, etc.)
+# Unit costs in INR.
+
+drugs:
+  - code: INSULIN
+    name: Insulin Human 40 IU/ml
+    ven: V
+    unit: vial
+    pack_size: 1
+    cold_chain: true
+    temp_min_c: 2.0
+    temp_max_c: 8.0
+    controlled: false
+    min_residual_days: 60
+    unit_cost_inr: 45.00
+    aliases:
+      - { alias: "insulin human", lang: en }
+      - { alias: "inzulin", lang: en, source: misspelling }
+      - { alias: "insuln", lang: en, source: misspelling }
+      - { alias: "ಇನ್ಸುಲಿನ್", lang: kn }
+
+  - code: OXYTOCIN
+    name: Oxytocin Injection 5 IU/ml
+    ven: V
+    unit: ampoule
+    pack_size: 5
+    cold_chain: true
+    temp_min_c: 2.0
+    temp_max_c: 8.0
+    controlled: false
+    min_residual_days: 60
+    unit_cost_inr: 16.50
+    aliases:
+      - { alias: "oxytocin inj", lang: en }
+      - { alias: "oxytosin", lang: en, source: misspelling }
+      - { alias: "ಆಕ್ಸಿಟೋಸಿನ್", lang: kn }
+
+  - code: ASV
+    name: Anti-Snake Venom Polyvalent
+    ven: V
+    unit: vial
+    pack_size: 1
+    cold_chain: true
+    temp_min_c: 2.0
+    temp_max_c: 8.0
+    controlled: false
+    min_residual_days: 90
+    unit_cost_inr: 580.00
+    aliases:
+      - { alias: "anti snake venom", lang: en }
+      - { alias: "snake venom serum", lang: en }
+      - { alias: "ಹಾವಿನ ವಿಷ ನಿರೋಧಕ", lang: kn }
+
+  - code: TD
+    name: Td Vaccine (Tetanus-Diphtheria)
+    ven: V
+    unit: dose
+    pack_size: 10
+    cold_chain: true
+    temp_min_c: 2.0
+    temp_max_c: 8.0
+    controlled: false
+    min_residual_days: 90
+    unit_cost_inr: 8.00
+    aliases:
+      - { alias: "td vaccine", lang: en }
+      - { alias: "tetanus vaccine", lang: en }
+      - { alias: "ಟಿಡಿ ಲಸಿಕೆ", lang: kn }
+
+  - code: CEFTRIAXONE
+    name: Ceftriaxone Injection 1g
+    ven: V
+    unit: vial
+    pack_size: 1
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: false
+    min_residual_days: 30
+    unit_cost_inr: 28.00
+    aliases:
+      - { alias: "ceftriaxone inj", lang: en }
+      - { alias: "ceftriaxon", lang: en, source: misspelling }
+      - { alias: "ಸೆಫ್ಟ್ರಿಯಾಕ್ಸೋನ್", lang: kn }
+
+  - code: RL
+    name: Ringer's Lactate 500ml
+    ven: V
+    unit: bottle
+    pack_size: 1
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: false
+    min_residual_days: 90
+    unit_cost_inr: 32.00
+    aliases:
+      - { alias: "ringers lactate", lang: en }
+      - { alias: "rl solution", lang: en }
+      - { alias: "RL 500ml", lang: en }
+
+  - code: ORS
+    name: ORS Sachet (WHO formula)
+    ven: E
+    unit: sachet
+    pack_size: 25
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: false
+    min_residual_days: 30
+    unit_cost_inr: 3.50
+    aliases:
+      - { alias: "ors packet", lang: en }
+      - { alias: "ors pkt", lang: en, source: misspelling }
+      - { alias: "oral rehydration", lang: en }
+      - { alias: "ಒಆರ್‌ಎಸ್", lang: kn }
+
+  - code: PCM
+    name: Paracetamol 500mg
+    ven: E
+    unit: tablet
+    pack_size: 10
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: false
+    min_residual_days: 30
+    unit_cost_inr: 0.50
+    aliases:
+      - { alias: "paracetamol", lang: en }
+      - { alias: "pcm", lang: en, source: abbreviation }
+      - { alias: "pcm 500", lang: en }
+      - { alias: "ಪ್ಯಾರಸಿಟಮಾಲ್", lang: kn }
+
+  - code: AMOX
+    name: Amoxicillin 500mg
+    ven: E
+    unit: capsule
+    pack_size: 10
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: false
+    min_residual_days: 30
+    unit_cost_inr: 2.50
+    aliases:
+      - { alias: "amoxicillin", lang: en }
+      - { alias: "amoxy", lang: en, source: misspelling }
+      - { alias: "amox 500", lang: en }
+      - { alias: "ಅಮಾಕ್ಸಿಸಿಲಿನ್", lang: kn }
+
+  - code: METFORMIN
+    name: Metformin 500mg
+    ven: E
+    unit: tablet
+    pack_size: 10
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: false
+    min_residual_days: 30
+    unit_cost_inr: 1.00
+    aliases:
+      - { alias: "metformin", lang: en }
+      - { alias: "metformn", lang: en, source: misspelling }
+      - { alias: "ಮೆಟ್ಫಾರ್ಮಿನ್", lang: kn }
+
+  - code: AMLODIPINE
+    name: Amlodipine 5mg
+    ven: E
+    unit: tablet
+    pack_size: 10
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: false
+    min_residual_days: 30
+    unit_cost_inr: 1.20
+    aliases:
+      - { alias: "amlodipine", lang: en }
+      - { alias: "amlodipin", lang: en, source: misspelling }
+      - { alias: "ಅಮ್ಲೋಡಿಪೈನ್", lang: kn }
+
+  - code: IFA
+    name: Iron Folic Acid Tablet
+    ven: E
+    unit: tablet
+    pack_size: 100
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: false
+    min_residual_days: 30
+    unit_cost_inr: 0.30
+    aliases:
+      - { alias: "iron folic acid", lang: en }
+      - { alias: "ifa tablet", lang: en }
+      - { alias: "ಐಎಫ್‌ಎ", lang: kn }
+
+  - code: MORPHINE
+    name: Morphine Sulphate Injection 15mg/ml
+    ven: V
+    unit: ampoule
+    pack_size: 5
+    cold_chain: false
+    temp_min_c: null
+    temp_max_c: null
+    controlled: true
+    min_residual_days: 60
+    unit_cost_inr: 35.00
+    aliases:
+      - { alias: "morphine inj", lang: en }
+      - { alias: "morphine sulphate", lang: en }
+      - { alias: "ಮಾರ್ಫಿನ್", lang: kn }

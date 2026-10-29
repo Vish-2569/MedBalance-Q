@@ -1,0 +1,6 @@
+{
+  "order_id": "ORD-005",
+  "narrative": "Transfer of 28 vials of Insulin Human 40IU/ml from SIM-District Warehouse to SIM-General Hospital. The lot B-IN-2026-001 (expiry 2027-01-31) has 28 usable vials at the destination's consumption rate. Cold chain transport required via Cold Van Alpha.",
+  "grounded": true,
+  "model": "gemini-3.8-flash"
+}

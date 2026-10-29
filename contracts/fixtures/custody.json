@@ -1,0 +1,30 @@
+[
+  {
+    "order_id": "ORD-004",
+    "event_type": "created",
+    "actor": "system",
+    "timestamp": "2026-11-01T10:30:00+05:30",
+    "location": null
+  },
+  {
+    "order_id": "ORD-004",
+    "event_type": "picked",
+    "actor": "pharmacist_w0",
+    "timestamp": "2026-11-01T11:15:00+05:30",
+    "location": "W0"
+  },
+  {
+    "order_id": "ORD-004",
+    "event_type": "dispatched",
+    "actor": "driver_v2",
+    "timestamp": "2026-11-01T11:45:00+05:30",
+    "location": "W0"
+  },
+  {
+    "order_id": "ORD-004",
+    "event_type": "delivered",
+    "actor": "pharmacist_h3",
+    "timestamp": "2026-11-01T12:35:00+05:30",
+    "location": "H3"
+  }
+]

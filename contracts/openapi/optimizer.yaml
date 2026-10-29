@@ -1,0 +1,373 @@
+openapi: 3.1.0
+info:
+  title: MedBalance-Q Optimizer
+  version: 0.1.0
+  description: |
+    QUBO-based redistribution optimizer. Positions, feasibility F1-F6,
+    candidates, QpiAI Opt solver, zoning, baselines, regret, what-if, replay eval.
+
+paths:
+  /plan/run:
+    post:
+      operationId: runPlan
+      summary: Run the optimizer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode:
+                  type: string
+                  enum: [live, whatif, eval]
+                overrides:
+                  type: ["object", "null"]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanRun"
+
+  /plan/{id}:
+    get:
+      operationId: getPlan
+      summary: Get a plan with its orders and candidates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [plan, orders, candidates]
+                properties:
+                  plan:
+                    $ref: "#/components/schemas/PlanRun"
+                  orders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TransferOrder"
+                  candidates:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Candidate"
+
+  /plan/{id}/benchmark:
+    get:
+      operationId: getPlanBenchmark
+      summary: Solver benchmark for a plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Benchmark"
+
+  /plan/{id}/regret:
+    get:
+      operationId: getPlanRegret
+      summary: Regret analysis for a plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: order_id
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegretEntry"
+
+  /whynot:
+    get:
+      operationId: whyNot
+      summary: Explain why a facility/drug pair was not served
+      parameters:
+        - name: facility
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: drug
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhyNot"
+
+  /whatif:
+    post:
+      operationId: whatIf
+      summary: Run a what-if scenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [changes]
+              properties:
+                changes:
+                  type: object
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanRun"
+
+  /eval/replay:
+    post:
+      operationId: evalReplay
+      summary: Replay a historical scenario for evaluation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scenario_id]
+              properties:
+                scenario_id:
+                  type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [eval_id, status]
+                properties:
+                  eval_id:
+                    type: string
+                  status:
+                    type: string
+
+  /eval/{id}:
+    get:
+      operationId: getEval
+      summary: Get evaluation results
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, scenario_id, metrics, status]
+                properties:
+                  id:
+                    type: string
+                  scenario_id:
+                    type: string
+                  metrics:
+                    type: object
+                  status:
+                    type: string
+
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  keys:
+                    type: object
+
+components:
+  schemas:
+    Lot:
+      type: object
+      required: [facility_id, drug_code, batch_no, expiry, qty]
+      properties:
+        facility_id:
+          type: string
+        drug_code:
+          type: string
+        batch_no:
+          type: string
+        expiry:
+          type: string
+          format: date
+        qty:
+          type: integer
+
+    TransferOrder:
+      type: object
+      required: [id, dta_number, plan_id, src_facility_id, dst_facility_id, drug_code, drug_name, batch_no, qty, usable, score, status, temperature_req, created_at]
+      properties:
+        id:
+          type: string
+        dta_number:
+          type: string
+        plan_id:
+          type: string
+        src_facility_id:
+          type: string
+        dst_facility_id:
+          type: string
+        drug_code:
+          type: string
+        drug_name:
+          type: string
+        batch_no:
+          type: string
+        qty:
+          type: integer
+        usable:
+          type: integer
+        score:
+          type: number
+        status:
+          type: string
+          enum: [proposed, approved, rejected, dispatched, in_transit, delivered, cancelled]
+        temperature_req:
+          type: string
+          enum: [ambient, cold_chain]
+        created_at:
+          type: string
+          format: date-time
+
+    PlanRun:
+      type: object
+      required: [id, created_at, mode, solver_tier, variables, constraints, transfers, shortage_reduction, expiry_avoided, cost_inr]
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        mode:
+          type: string
+          enum: [live, whatif, eval]
+        solver_tier:
+          type: string
+        energy:
+          type: ["number", "null"]
+        gap_to_milp:
+          type: ["number", "null"]
+        variables:
+          type: integer
+        constraints:
+          type: integer
+        transfers:
+          type: integer
+        shortage_reduction:
+          type: number
+        expiry_avoided:
+          type: integer
+        cost_inr:
+          type: number
+
+    Candidate:
+      type: object
+      required: [chunk_id, lot, destination_id, drug_code, usable, score, feasibility]
+      properties:
+        chunk_id:
+          type: string
+        lot:
+          $ref: "#/components/schemas/Lot"
+        destination_id:
+          type: string
+        drug_code:
+          type: string
+        usable:
+          type: integer
+        score:
+          type: number
+        feasibility:
+          type: object
+          description: "Keys F1..F6, each boolean"
+
+    RegretEntry:
+      type: object
+      required: [order_id, reason, score_delta]
+      properties:
+        order_id:
+          type: string
+        reason:
+          type: string
+        score_delta:
+          type: number
+        alternative:
+          type: ["string", "null"]
+
+    Benchmark:
+      type: object
+      required: [solver_tier, energy, solve_time_ms]
+      properties:
+        solver_tier:
+          type: string
+        energy:
+          type: number
+        milp_energy:
+          type: ["number", "null"]
+        gap:
+          type: ["number", "null"]
+        solve_time_ms:
+          type: integer
+
+    WhyNot:
+      type: object
+      required: [facility_id, drug_code, reasons]
+      properties:
+        facility_id:
+          type: string
+        drug_code:
+          type: string
+        reasons:
+          type: array
+          items:
+            type: string

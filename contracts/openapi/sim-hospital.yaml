@@ -1,0 +1,240 @@
+openapi: 3.1.0
+info:
+  title: MedBalance-Q Sim Hospital
+  version: 0.1.0
+  description: |
+    Simulated hospital with its own SQLite stock database.
+    One image, four instances (H1–H4) configured via HOSPITAL_ID env.
+
+paths:
+  /fhir/InventoryReport:
+    get:
+      operationId: getFhirInventoryReport
+      summary: FHIR-like InventoryReport bundle
+      description: |
+        Returns a simplified FHIR InventoryReport-style JSON.
+        Not a full FHIR resource — enough for ingest-ai to parse.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FhirInventoryReport"
+
+  /export/stock.csv:
+    get:
+      operationId: exportStockCsv
+      summary: Export stock as CSV
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /state:
+    get:
+      operationId: getState
+      summary: Full hospital state (drugs, lots, rates)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HospitalState"
+
+  /transfers/inbound:
+    post:
+      operationId: receiveInbound
+      summary: Receive an inbound transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order_id, items]
+              properties:
+                order_id:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TransferOrderItem"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted]
+                properties:
+                  accepted:
+                    type: integer
+
+  /transfers/outbound:
+    post:
+      operationId: dispatchOutbound
+      summary: Dispatch an outbound transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order_id, items]
+              properties:
+                order_id:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/TransferOrderItem"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [dispatched]
+                properties:
+                  dispatched:
+                    type: integer
+
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+components:
+  schemas:
+    Lot:
+      type: object
+      required: [facility_id, drug_code, batch_no, expiry, qty]
+      properties:
+        facility_id:
+          type: string
+        drug_code:
+          type: string
+        batch_no:
+          type: string
+        expiry:
+          type: string
+          format: date
+        qty:
+          type: integer
+
+    TransferOrderItem:
+      type: object
+      required: [drug_code, drug_name, batch_no, qty, usable, expiry]
+      properties:
+        drug_code:
+          type: string
+        drug_name:
+          type: string
+        batch_no:
+          type: string
+        qty:
+          type: integer
+        usable:
+          type: integer
+        expiry:
+          type: string
+          format: date
+
+    HospitalState:
+      type: object
+      required: [hospital_id, drugs]
+      properties:
+        hospital_id:
+          type: string
+        drugs:
+          type: array
+          items:
+            type: object
+            required: [drug_code, lots, consumption_rate]
+            properties:
+              drug_code:
+                type: string
+              lots:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lot"
+              consumption_rate:
+                type: number
+
+    FhirInventoryReport:
+      type: object
+      required: [resourceType, status, date, reporter, item]
+      properties:
+        resourceType:
+          type: string
+          const: InventoryReport
+        status:
+          type: string
+        date:
+          type: string
+          format: date-time
+        reporter:
+          type: object
+          required: [reference, display]
+          properties:
+            reference:
+              type: string
+            display:
+              type: string
+        item:
+          type: array
+          items:
+            type: object
+            required: [category, code, quantity, expiry, batch]
+            properties:
+              category:
+                type: string
+              code:
+                type: object
+                required: [coding]
+                properties:
+                  coding:
+                    type: array
+                    items:
+                      type: object
+                      required: [system, code, display]
+                      properties:
+                        system:
+                          type: string
+                        code:
+                          type: string
+                        display:
+                          type: string
+              quantity:
+                type: object
+                required: [value, unit]
+                properties:
+                  value:
+                    type: integer
+                  unit:
+                    type: string
+              expiry:
+                type: string
+                format: date
+              batch:
+                type: string

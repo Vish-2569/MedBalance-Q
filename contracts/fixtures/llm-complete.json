@@ -1,0 +1,16 @@
+{
+  "request_id": "llm-req-001",
+  "prompt_id": "extract_stock",
+  "version": "v1",
+  "model": "gemini-3.8-flash",
+  "output": {
+    "items": [
+      {"drug_code": "PARA500", "drug_name": "Paracetamol 500mg", "batch_no": "B-PA-2026-002", "expiry": "2026-11-20", "qty": 150}
+    ]
+  },
+  "confidence": 0.95,
+  "tokens_in": 320,
+  "tokens_out": 85,
+  "latency_ms": 1200,
+  "cached": false
+}

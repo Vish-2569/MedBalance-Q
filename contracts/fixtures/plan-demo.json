@@ -1,0 +1,186 @@
+{
+  "plan": {
+    "id": "plan-demo-001",
+    "created_at": "2026-11-01T10:30:00+05:30",
+    "mode": "live",
+    "solver_tier": "qpiai-opt-local",
+    "energy": -4.82,
+    "gap_to_milp": 0.03,
+    "variables": 42,
+    "constraints": 18,
+    "transfers": 6,
+    "shortage_reduction": 0.72,
+    "expiry_avoided": 215,
+    "cost_inr": 1250.00
+  },
+  "orders": [
+    {
+      "id": "ORD-001",
+      "dta_number": "DTA/BLR-U/2026/000001",
+      "plan_id": "plan-demo-001",
+      "src_facility_id": "W0",
+      "dst_facility_id": "H2",
+      "drug_code": "PARA500",
+      "drug_name": "Paracetamol 500mg",
+      "batch_no": "B-PA-2026-001",
+      "qty": 180,
+      "usable": 180,
+      "score": 0.92,
+      "status": "proposed",
+      "temperature_req": "ambient",
+      "created_at": "2026-11-01T10:30:00+05:30"
+    },
+    {
+      "id": "ORD-002",
+      "dta_number": "DTA/BLR-U/2026/000002",
+      "plan_id": "plan-demo-001",
+      "src_facility_id": "W0",
+      "dst_facility_id": "H4",
+      "drug_code": "PARA500",
+      "drug_name": "Paracetamol 500mg",
+      "batch_no": "B-PA-2026-001",
+      "qty": 120,
+      "usable": 120,
+      "score": 0.85,
+      "status": "proposed",
+      "temperature_req": "ambient",
+      "created_at": "2026-11-01T10:30:00+05:30"
+    },
+    {
+      "id": "ORD-003",
+      "dta_number": "DTA/BLR-U/2026/000003",
+      "plan_id": "plan-demo-001",
+      "src_facility_id": "W0",
+      "dst_facility_id": "H3",
+      "drug_code": "AMOX500",
+      "drug_name": "Amoxicillin 500mg",
+      "batch_no": "B-AX-2026-001",
+      "qty": 120,
+      "usable": 120,
+      "score": 0.88,
+      "status": "proposed",
+      "temperature_req": "ambient",
+      "created_at": "2026-11-01T10:30:00+05:30"
+    },
+    {
+      "id": "ORD-004",
+      "dta_number": "DTA/BLR-U/2026/000004",
+      "plan_id": "plan-demo-001",
+      "src_facility_id": "W0",
+      "dst_facility_id": "H3",
+      "drug_code": "ORS",
+      "drug_name": "ORS Sachet",
+      "batch_no": "B-OR-2026-001",
+      "qty": 125,
+      "usable": 125,
+      "score": 0.80,
+      "status": "approved",
+      "temperature_req": "ambient",
+      "created_at": "2026-11-01T10:30:00+05:30"
+    },
+    {
+      "id": "ORD-005",
+      "dta_number": "DTA/BLR-U/2026/000005",
+      "plan_id": "plan-demo-001",
+      "src_facility_id": "W0",
+      "dst_facility_id": "H2",
+      "drug_code": "INSUL",
+      "drug_name": "Insulin Human 40IU/ml",
+      "batch_no": "B-IN-2026-001",
+      "qty": 28,
+      "usable": 28,
+      "score": 0.95,
+      "status": "proposed",
+      "temperature_req": "cold_chain",
+      "created_at": "2026-11-01T10:30:00+05:30"
+    },
+    {
+      "id": "ORD-006",
+      "dta_number": "DTA/BLR-U/2026/000006",
+      "plan_id": "plan-demo-001",
+      "src_facility_id": "H1",
+      "dst_facility_id": "H2",
+      "drug_code": "PARA500",
+      "drug_name": "Paracetamol 500mg",
+      "batch_no": "B-PA-2026-002",
+      "qty": 50,
+      "usable": 45,
+      "score": 0.70,
+      "status": "proposed",
+      "temperature_req": "ambient",
+      "created_at": "2026-11-01T10:30:00+05:30"
+    }
+  ],
+  "candidates": [
+    {
+      "lot": {"facility_id": "W0", "drug_code": "PARA500", "batch_no": "B-PA-2026-001", "expiry": "2026-12-15", "qty": 2000},
+      "destination_id": "H2",
+      "usable": 180,
+      "score": 0.92,
+      "selected": true
+    },
+    {
+      "lot": {"facility_id": "W0", "drug_code": "PARA500", "batch_no": "B-PA-2026-001", "expiry": "2026-12-15", "qty": 2000},
+      "destination_id": "H4",
+      "usable": 120,
+      "score": 0.85,
+      "selected": true
+    },
+    {
+      "lot": {"facility_id": "W0", "drug_code": "AMOX500", "batch_no": "B-AX-2026-001", "expiry": "2026-12-31", "qty": 800},
+      "destination_id": "H3",
+      "usable": 120,
+      "score": 0.88,
+      "selected": true
+    },
+    {
+      "lot": {"facility_id": "W0", "drug_code": "ORS", "batch_no": "B-OR-2026-001", "expiry": "2027-03-01", "qty": 1500},
+      "destination_id": "H3",
+      "usable": 125,
+      "score": 0.80,
+      "selected": true
+    },
+    {
+      "lot": {"facility_id": "W0", "drug_code": "INSUL", "batch_no": "B-IN-2026-001", "expiry": "2027-01-31", "qty": 50},
+      "destination_id": "H2",
+      "usable": 28,
+      "score": 0.95,
+      "selected": true
+    },
+    {
+      "lot": {"facility_id": "H1", "drug_code": "PARA500", "batch_no": "B-PA-2026-002", "expiry": "2026-11-20", "qty": 150},
+      "destination_id": "H2",
+      "usable": 45,
+      "score": 0.70,
+      "selected": true
+    },
+    {
+      "lot": {"facility_id": "W0", "drug_code": "INSUL", "batch_no": "B-IN-2026-001", "expiry": "2027-01-31", "qty": 50},
+      "destination_id": "H1",
+      "usable": 12,
+      "score": 0.55,
+      "selected": false
+    },
+    {
+      "lot": {"facility_id": "W0", "drug_code": "PARA500", "batch_no": "B-PA-2026-001", "expiry": "2026-12-15", "qty": 2000},
+      "destination_id": "H3",
+      "usable": 160,
+      "score": 0.60,
+      "selected": false
+    }
+  ],
+  "regret": [
+    {
+      "order_id": "ORD-005",
+      "alternative": "Send insulin to H1 instead of H2",
+      "reason": "H1 already holds 15 vials (lot B-IN-2026-002) covering 10 effective days. H2 has zero insulin stock and higher unmet shortage (15 vs 8). Sending to H2 yields 0.40 more normalised benefit.",
+      "delta_score": -0.40
+    },
+    {
+      "order_id": "ORD-001",
+      "alternative": "Send PARA500 from W0 to H3 instead of H2",
+      "reason": "H3 has no PARA500 shortage (400 units in stock, effective_stock covers target_days). H2 has shortage=130. The H3 candidate scored 0.60 vs H2's 0.92.",
+      "delta_score": -0.32
+    }
+  ]
+}

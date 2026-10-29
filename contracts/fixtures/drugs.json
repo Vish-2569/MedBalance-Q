@@ -1,0 +1,7 @@
+[
+  {"code": "PARA500", "name": "Paracetamol 500mg", "ven": "E", "unit": "tablet", "pack_size": 10, "cold_chain": false, "controlled": false, "min_residual_days": 30},
+  {"code": "AMOX500", "name": "Amoxicillin 500mg", "ven": "E", "unit": "capsule", "pack_size": 10, "cold_chain": false, "controlled": false, "min_residual_days": 30},
+  {"code": "INSUL", "name": "Insulin Human 40IU/ml", "ven": "V", "unit": "vial", "pack_size": 1, "cold_chain": true, "controlled": false, "min_residual_days": 60},
+  {"code": "ORS", "name": "ORS Sachet", "ven": "E", "unit": "sachet", "pack_size": 25, "cold_chain": false, "controlled": false, "min_residual_days": 30},
+  {"code": "METF500", "name": "Metformin 500mg", "ven": "N", "unit": "tablet", "pack_size": 10, "cold_chain": false, "controlled": false, "min_residual_days": 30}
+]

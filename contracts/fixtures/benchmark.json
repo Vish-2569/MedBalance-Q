@@ -1,0 +1,7 @@
+{
+  "solver_tier": "qpiai-opt-local",
+  "energy": -4.82,
+  "milp_energy": -4.97,
+  "gap": 0.03,
+  "solve_time_ms": 340
+}

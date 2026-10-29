@@ -1,0 +1,14 @@
+[
+  {"facility_id": "W0", "drug_code": "PARA500", "batch_no": "B-PA-2026-001", "expiry": "2026-12-15", "qty": 2000},
+  {"facility_id": "W0", "drug_code": "AMOX500", "batch_no": "B-AX-2026-001", "expiry": "2026-12-31", "qty": 800},
+  {"facility_id": "W0", "drug_code": "INSUL", "batch_no": "B-IN-2026-001", "expiry": "2027-01-31", "qty": 50},
+  {"facility_id": "W0", "drug_code": "ORS", "batch_no": "B-OR-2026-001", "expiry": "2027-03-01", "qty": 1500},
+  {"facility_id": "H1", "drug_code": "PARA500", "batch_no": "B-PA-2026-002", "expiry": "2026-11-20", "qty": 150},
+  {"facility_id": "H1", "drug_code": "AMOX500", "batch_no": "B-AX-2026-002", "expiry": "2027-02-28", "qty": 200},
+  {"facility_id": "H1", "drug_code": "INSUL", "batch_no": "B-IN-2026-002", "expiry": "2026-11-30", "qty": 15},
+  {"facility_id": "H2", "drug_code": "PARA500", "batch_no": "B-PA-2026-003", "expiry": "2027-06-30", "qty": 50},
+  {"facility_id": "H2", "drug_code": "METF500", "batch_no": "B-MF-2026-001", "expiry": "2027-04-15", "qty": 300},
+  {"facility_id": "H3", "drug_code": "PARA500", "batch_no": "B-PA-2026-004", "expiry": "2027-05-01", "qty": 400},
+  {"facility_id": "H3", "drug_code": "ORS", "batch_no": "B-OR-2026-002", "expiry": "2026-11-25", "qty": 30},
+  {"facility_id": "H4", "drug_code": "PARA500", "batch_no": "B-PA-2026-005", "expiry": "2027-03-15", "qty": 80}
+]

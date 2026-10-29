@@ -1,0 +1,123 @@
+openapi: 3.1.0
+info:
+  title: MedBalance-Q Forecast
+  version: 0.1.0
+  description: Holt-Winters baseline with LLM context multiplier.
+
+paths:
+  /forecast/run:
+    post:
+      operationId: runForecast
+      summary: Trigger forecast computation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                facility_id:
+                  type: ["string", "null"]
+                drug_code:
+                  type: ["string", "null"]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [forecasts, method]
+                properties:
+                  forecasts:
+                    type: integer
+                  method:
+                    type: string
+
+  /forecast:
+    get:
+      operationId: getForecasts
+      summary: Get forecasts
+      parameters:
+        - name: facility
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: drug
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Forecast"
+
+  /forecast/backtest:
+    get:
+      operationId: backtest
+      summary: Backtest forecast accuracy
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mae, rmse, coverage, periods]
+                properties:
+                  mae:
+                    type: number
+                  rmse:
+                    type: number
+                  coverage:
+                    type: number
+                  periods:
+                    type: integer
+
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+components:
+  schemas:
+    Forecast:
+      type: object
+      required: [facility_id, drug_code, horizon_days, daily_rate, method, confidence, context_multiplier, adjusted_rate]
+      properties:
+        facility_id:
+          type: string
+        drug_code:
+          type: string
+        horizon_days:
+          type: integer
+        daily_rate:
+          type: number
+        method:
+          type: string
+        confidence:
+          type: number
+        context_multiplier:
+          type: number
+        adjusted_rate:
+          type: number

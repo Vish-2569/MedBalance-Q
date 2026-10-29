@@ -1,0 +1,17 @@
+[
+  {
+    "id": "rpt-001",
+    "facility_code": "H1",
+    "received_at": "2026-11-01T09:00:00+05:30",
+    "format": "csv",
+    "status": "processed",
+    "items": [
+      {"drug_code": "PARA500", "drug_name": "Paracetamol 500mg", "batch_no": "B-PA-2026-002", "expiry": "2026-11-20", "qty": 150, "confidence": 0.98},
+      {"drug_code": "AMOX500", "drug_name": "Amoxicillin 500mg", "batch_no": "B-AX-2026-002", "expiry": "2027-02-28", "qty": 200, "confidence": 0.97},
+      {"drug_code": "INSUL", "drug_name": "Insulin Human 40IU/ml", "batch_no": "B-IN-2026-002", "expiry": "2026-11-30", "qty": 15, "confidence": 0.95}
+    ],
+    "anomalies": [],
+    "model": "gemini-3.8-flash",
+    "prompt_id": "extract_stock@v1"
+  }
+]

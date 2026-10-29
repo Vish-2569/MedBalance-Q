@@ -1,0 +1,218 @@
+openapi: 3.1.0
+info:
+  title: MedBalance-Q GenAI Gateway
+  version: 0.1.0
+  description: |
+    LLM gateway (Gemini), narration with numeric grounding firewall,
+    DTA/credit-memo PDF generation, and copilot chat.
+
+paths:
+  /llm/complete:
+    post:
+      operationId: llmComplete
+      summary: Run a prompted LLM completion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LlmRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LlmResponse"
+
+  /narrate/{order_id}:
+    post:
+      operationId: narrateOrder
+      summary: Generate a grounded narrative for a transfer order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [order_id, narrative, grounded, model]
+                properties:
+                  order_id:
+                    type: string
+                  narrative:
+                    type: string
+                  grounded:
+                    type: boolean
+                  model:
+                    type: string
+
+  /docs/dta/{order_id}:
+    post:
+      operationId: generateDta
+      summary: Generate a Drug Transfer Advice PDF
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF document
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /docs/credit-memo/{order_id}:
+    post:
+      operationId: generateCreditMemo
+      summary: Generate a credit memo PDF
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: PDF document
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /copilot/chat:
+    post:
+      operationId: copilotChat
+      summary: Copilot chat (streaming SSE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                messages:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/ChatMessage"
+                context:
+                  type: ["object", "null"]
+      responses:
+        "200":
+          description: SSE stream of assistant responses
+          content:
+            text/event-stream: {}
+
+  /ai/health:
+    get:
+      operationId: aiHealth
+      summary: AI-specific health (provider status, model info)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service, provider, models]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  provider:
+                    type: string
+                  models:
+                    type: object
+                    properties:
+                      fast:
+                        type: string
+                      smart:
+                        type: string
+
+  /health:
+    get:
+      operationId: health
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service]
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+
+components:
+  schemas:
+    LlmRequest:
+      type: object
+      required: [purpose, prompt_id, version, input]
+      properties:
+        purpose:
+          type: string
+        prompt_id:
+          type: string
+        version:
+          type: integer
+        input:
+          type: object
+
+    LlmResponse:
+      type: object
+      required: [output, model, prompt_ref, confidence, cached, fallback]
+      properties:
+        output:
+          type: object
+        model:
+          type: string
+        prompt_ref:
+          type: string
+        confidence:
+          type: number
+        cached:
+          type: boolean
+        fallback:
+          type: boolean
+
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+        tool_calls:
+          type: ["array", "null"]
+          items:
+            $ref: "#/components/schemas/ToolCall"
+
+    ToolCall:
+      type: object
+      required: [name, arguments]
+      properties:
+        name:
+          type: string
+        arguments:
+          type: object
+        result:
+          type: ["object", "null"]
