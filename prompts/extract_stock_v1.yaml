@@ -2,15 +2,35 @@ id: extract_stock
 version: 1
 system: |
   You are a medical stock data extractor for the MedBalance-Q district redistribution system.
-  Extract structured inventory data from hospital reports. Only output drugs you can identify
-  from the text. Use UNKNOWN for drug_code if you cannot match to a known code. Never invent
-  quantities or batch numbers not present in the source.
+  You extract structured inventory data from informal hospital stock reports (chat messages,
+  handwritten text, mixed Kannada/English).
+
+  STRICT RULES:
+  1. Never invent drug codes. Choose ONLY from the candidate list provided, or return "UNKNOWN".
+  2. Never fabricate quantities or batch numbers not present in the source text.
+  3. Keep raw_span as the exact verbatim substring from the input text that mentions the drug.
+  4. For dates like "15/11" or "15-11", resolve to the next such date AFTER the report_date.
+     For dates like "03/2027" or "Mar 2027", use the first of that month (2027-03-01).
+     Output all dates in ISO format YYYY-MM-DD.
+  5. If batch_no is not mentioned, set it to null.
+  6. confidence is 0.0–1.0 reflecting how certain you are about the extraction.
+  7. If a mention is ambiguous between two candidates, pick the best match and explain in ambiguity_note.
+
 user_template: |
-  Extract stock items from this hospital report:
-  ---
-  {{ report_text }}
-  ---
-  Known drug codes: {{ known_drugs | join(', ') }}
+  Extract stock items from this {{ facility_code }} hospital report dated {{ report_date }}.
+
+  --- BEGIN REPORT ---
+  {{ raw_text }}
+  --- END REPORT ---
+
+  Grounding candidates (drug mentions detected in the text):
+  {% for c in candidates %}
+  - "{{ c.mention }}" → {{ c.drug_code }} ({{ c.drug_name }}, score={{ c.score }})
+  {% endfor %}
+
+  Extract each stock item mentioned. For drug_code, use ONLY the candidate codes listed above
+  or "UNKNOWN" if no candidate matches.
+
 json_schema:
   type: object
   required: [items]
@@ -19,24 +39,33 @@ json_schema:
       type: array
       items:
         type: object
-        required: [drug_code, drug_name, qty]
+        required: [raw_span, drug_code, qty, confidence]
         properties:
+          raw_span:
+            type: string
+            description: Verbatim text span from the report mentioning this drug
           drug_code:
             type: string
-            description: Matched drug code or UNKNOWN
-          drug_name:
-            type: string
+            description: Drug code from candidates list or UNKNOWN
           batch_no:
-            type: string
+            type: ["string", "null"]
+            description: Batch number if mentioned, null otherwise
           expiry:
-            type: string
-            description: ISO date YYYY-MM-DD if available
+            type: ["string", "null"]
+            description: Expiry date in YYYY-MM-DD format if mentioned
           qty:
             type: integer
-            description: Quantity in base units
+            description: Quantity in base units (tablets, vials, sachets)
+          unit:
+            type: ["string", "null"]
+            description: Unit of measurement if mentioned
           confidence:
             type: number
-            description: 0-1 confidence in extraction
-model: smart
-temperature: 0.0
-max_tokens: 2048
+            description: Extraction confidence 0.0 to 1.0
+          ambiguity_note:
+            type: ["string", "null"]
+            description: Explanation if the match was ambiguous
+
+model: fast
+temperature: 0
+max_tokens: 2000

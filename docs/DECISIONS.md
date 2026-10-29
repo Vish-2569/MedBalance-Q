@@ -44,3 +44,21 @@
 **Context:** Need 90 days of consumption history with realistic variance. numpy would be a heavy dependency just for random numbers.
 **Decision:** Use inverse-CDF Poisson sampling with `random.Random(seed)` for full determinism without numpy. Generator reads from YAML configs, outputs SQL and per-hospital JSON.
 **Consequences:** `make seed` is reproducible across all 4 laptops. Different seeds produce different but structurally identical data.
+
+## ADR-009: QAOA Max-Cut for facility zoning uses parameter grid, not COBYLA
+**Status:** Accepted
+**Context:** Need to optimize QAOA angles (γ, β) for Max-Cut. Options: COBYLA optimizer or simple grid search.
+**Decision:** Use 3×3 parameter grid (γ ∈ {0.5, 1.0, 1.5}, β ∈ {0.3, 0.6, 1.0}) per depth layer. Grid search is deterministic, no scipy dependency, and sufficient for our small graphs (5-40 nodes after taluk aggregation).
+**Consequences:** Slightly suboptimal angles vs variational optimization, but reproducible and fast. Can upgrade to COBYLA if graphs grow.
+
+## ADR-010: MILP uses CP-SAT (not MIP solver) for exact baseline
+**Status:** Accepted
+**Context:** Need an exact optimum to report honest QUBO gap. OR-Tools offers both MIP and CP-SAT solvers.
+**Decision:** CP-SAT — handles binary variables and linear constraints natively, generally faster for our integer problem structure. Objective scaled by 10000 to convert float coefficients to integers.
+**Consequences:** Gap reported as `|QUBO_obj - MILP_obj| / |MILP_obj| × 100%`. MILP finds OPTIMAL on fixture instances within 1s.
+
+## ADR-011: Zoning via Max-Cut bisection (k=2 only)
+**Status:** Accepted
+**Context:** Facility zoning for QUBO decomposition. Max-Cut is naturally a bisection.
+**Decision:** Two zones only. Edge weight = normalised transit cost (far facilities in different zones → more cross-zone cost cut). k-means (k=2) on 1D distance projection as comparison baseline.
+**Consequences:** Multi-zone (k>2) would need recursive bisection; deferred. Two zones sufficient for 5-40 facility districts.

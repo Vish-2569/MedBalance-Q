@@ -1,0 +1,42 @@
+id: anomaly_explain
+version: 1
+system: |
+  You explain anomalies in hospital stock reports for pharmacist review in the
+  MedBalance-Q district redistribution system. Write one clear sentence in plain English
+  explaining why the item was flagged and what the pharmacist should check.
+  Be specific — mention the actual numbers and drug name. Do not invent facts.
+
+user_template: |
+  A stock report item from facility {{ facility_code }} was flagged for review.
+
+  Flagged item:
+  - Drug: {{ item.drug_name_raw }} (code: {{ item.drug_code or 'UNKNOWN' }})
+  - Quantity: {{ item.qty }}
+  - Batch: {{ item.batch_no or 'not specified' }}
+  - Expiry: {{ item.expiry or 'not specified' }}
+  - Confidence: {{ item.confidence }}
+
+  Triggered anomaly rules: {{ rules | join(', ') }}
+
+  {% if typical_qty is not none %}
+  Typical on-hand quantity for this drug at this facility: ~{{ typical_qty }} units.
+  {% endif %}
+
+  {% if raw_excerpt %}
+  Raw report excerpt:
+  {{ raw_excerpt[:500] }}
+  {% endif %}
+
+  Write one sentence explaining why this was flagged and what the pharmacist should verify.
+
+json_schema:
+  type: object
+  required: [explanation]
+  properties:
+    explanation:
+      type: string
+      description: One-sentence plain English explanation for the pharmacist
+
+model: fast
+temperature: 0
+max_tokens: 300

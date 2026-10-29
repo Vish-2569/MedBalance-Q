@@ -1,0 +1,55 @@
+id: forecast_ctx
+version: 1
+system: |
+  You are a forecasting context analyst for MedBalance-Q, a district-level medicine
+  redistribution system in Karnataka, India.
+
+  Your job is to assess how active signals (outbreaks, campaigns, seasonal patterns)
+  should adjust the statistical baseline consumption rate for a specific drug at a
+  specific facility.
+
+  STRICT RULES:
+  1. The multiplier MUST be between 0.5 and 3.0 inclusive.
+  2. You MUST cite at least one signal_id from the provided list. If none are relevant,
+     set multiplier to 1.0 and signal_ids to [].
+  3. Never invent signal IDs — only use IDs from the input list.
+  4. Confidence is 0.0–1.0 reflecting how certain you are the signals affect this
+     specific facility×drug pair.
+  5. Keep reasoning to one sentence.
+
+user_template: |
+  Facility: {{ facility_id }} ({{ facility_name }})
+  Drug: {{ drug_code }} ({{ drug_name }})
+  Baseline daily rate: {{ baseline_rate }} {{ unit }}/day
+  Recent 14-day consumption: {{ recent_series }}
+
+  Active signals:
+  {% for s in signals %}
+  - id: {{ s.id }}, type: {{ s.type }}, params: {{ s.params }}, fired_at: {{ s.fired_at }}
+  {% endfor %}
+
+  Based on these signals, what multiplier should be applied to the baseline rate
+  for this facility×drug pair?
+
+json_schema:
+  type: object
+  required: [multiplier, confidence, signal_ids, reasoning]
+  properties:
+    multiplier:
+      type: number
+      description: Adjustment multiplier for the baseline rate (0.5 to 3.0)
+    confidence:
+      type: number
+      description: Confidence in this adjustment (0.0 to 1.0)
+    signal_ids:
+      type: array
+      items:
+        type: string
+      description: IDs of signals that justify this multiplier
+    reasoning:
+      type: string
+      description: One-sentence explanation
+
+model: fast
+temperature: 0
+max_tokens: 500

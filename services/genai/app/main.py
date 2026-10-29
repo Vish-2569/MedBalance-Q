@@ -44,7 +44,7 @@ def _build_engine():
 
 
 def create_app():
-    app = _create_base("genai", keys=["GEMINI_API_KEY", "ANTHROPIC_API_KEY"])
+    app = _create_base("genai", keys=["GEMINI_API_KEY"])
 
     prompt_registry.load_all()
     app.state.prompt_list = prompt_registry.list_prompts()
