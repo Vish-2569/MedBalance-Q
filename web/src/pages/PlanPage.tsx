@@ -161,8 +161,8 @@ export default function PlanPage() {
                 {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
               </button>
               {expanded && (
-                <div className="border-t border-slate-100">
-                  <table className="w-full text-sm">
+                <div className="border-t border-slate-100 overflow-x-auto">
+                  <table className="w-full text-sm min-w-[640px]">
                     <thead>
                       <tr className="bg-slate-50 text-xs text-slate-500 uppercase">
                         <th className="text-left px-4 py-2 font-medium">DTA</th>

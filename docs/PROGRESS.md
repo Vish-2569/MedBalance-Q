@@ -1404,7 +1404,7 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
 ### Decisions
 - ResultsPage uses `getResultMetrics` API (not plan data) for accurate post-plan metrics
 - Ablation table highlights production config row with teal background
-- Sidebar collapse uses CSS media query (not JS state) for simplicity
+- Sidebar collapse uses `useIsNarrow(1400)` JS hook with resize listener + toggle button
 - Chart placeholders shown when data is empty rather than hiding sections
 
 ### Open issues

@@ -75,8 +75,8 @@ export default function BenchmarkPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
               <th className="text-left px-4 py-2.5 font-medium">Solver</th>

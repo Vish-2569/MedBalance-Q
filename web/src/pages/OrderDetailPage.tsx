@@ -210,7 +210,8 @@ export default function OrderDetailPage() {
         ) : regret.length === 0 ? (
           <p className="text-sm text-slate-400 italic">No alternatives evaluated.</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[500px]">
             <thead>
               <tr className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <th className="text-left px-3 py-2 font-medium">Alternative Facility</th>
@@ -235,6 +236,7 @@ export default function OrderDetailPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

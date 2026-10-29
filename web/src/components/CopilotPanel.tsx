@@ -247,7 +247,7 @@ export default function CopilotPanel() {
 
       <div
         className={cn(
-          'fixed top-0 right-0 bottom-0 w-80 bg-white border-l border-slate-200 z-40 flex flex-col shadow-xl transition-transform duration-200',
+          'copilot-panel fixed top-0 right-0 bottom-0 w-80 bg-white border-l border-slate-200 z-40 flex flex-col shadow-xl transition-transform duration-200',
           isOpen ? 'translate-x-0' : 'translate-x-full',
         )}
       >

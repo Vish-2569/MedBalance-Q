@@ -8,7 +8,7 @@ from typing import Any
 import yaml
 from jinja2 import Template
 
-_DEFAULT_DIR = Path(__file__).resolve().parents[3] / "prompts"
+_DEFAULT_DIR = Path(__file__).resolve().parents[1] / "prompts"
 _DOCKER_DIR = Path("/app/prompts")
 PROMPTS_DIR = _DOCKER_DIR if _DOCKER_DIR.exists() else _DEFAULT_DIR
 

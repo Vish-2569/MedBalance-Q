@@ -78,3 +78,17 @@ body {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Copilot panel: narrower on small screens */
+@media (max-width: 1400px) {
+  .copilot-panel {
+    width: 18rem;
+  }
+}
+
+/* Card grids: ensure 2-col minimum at 1366 */
+@media (max-width: 1400px) {
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
