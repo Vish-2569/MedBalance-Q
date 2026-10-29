@@ -240,3 +240,80 @@ Hospital: H1, Drugs: 9
 
 ### Requests to other lanes
 - L3 (ingest-ai): POST /ingest/{facility_id} endpoint needed to receive push reports from H3/H4
+
+---
+
+## P05 — genai LLM gateway (2026-10-29)
+
+### Done
+- **Prompt registry** (`app/prompt_registry.py`): loads `prompts/*_v*.yaml` at startup with Jinja2 user_template rendering, hot-reload in dev via `GENAI_HOT_RELOAD=1`. Two initial prompts: `smoke_v1` and `extract_stock_v1`.
+- **Provider interface** (`app/providers.py`): `LLMProvider` ABC with three implementations:
+  - `ClaudeProvider`: Anthropic SDK tool-use for structured output (forced tool with `input_schema` = prompt's `json_schema`), multi-tool support for copilot.
+  - `GeminiProvider`: google.genai SDK with `response_json_schema` for structured output.
+  - `FakeProvider`: canned responses for testing, records all calls.
+- **Validation** (`app/validation.py`): builds dynamic Pydantic model from JSON schema, validates LLM output.
+- **Redis cache** (`app/cache.py`): key = `sha256(prompt_id@version + model + canonical_json(input))`. Respects `DEMO_MODE`: live (cache as speed-up), record (always call + store), replay (cache only, miss → fallback).
+- **LLM service** (`app/llm_service.py`): orchestrates call flow — cache check → provider call → validation → retry (up to 2x appending error) → cache store → DB log. Concurrency semaphore (4). Timeouts: 20s fast, 45s smart.
+- **Call logging**: every call → `llm_call` table (purpose, prompt_id, version, model, input, output with provider/tokens/ok/error, confidence, cached, fallback, latency_ms, cache_key).
+- **Router** (`app/router.py`): `POST /llm/complete` and `GET /ai/health` (calls_24h, cache_hit_rate, p50/p95 latency, fallbacks, by_purpose breakdown).
+- **Settings**: added `ANTHROPIC_API_KEY` to `medbal_common.settings` with `has_anthropic()` and `key_status()`.
+
+### Example: how other services call the gateway
+
+```python
+import httpx
+
+resp = httpx.post("http://genai:8003/llm/complete", json={
+    "purpose": "extract_stock",
+    "prompt_id": "extract_stock",
+    "version": 1,
+    "input": {
+        "report_text": "<raw hospital report text>",
+        "known_drugs": ["PARA500", "INSULIN", "AMOX500"]
+    }
+})
+data = resp.json()
+if data["ok"]:
+    items = data["output"]["items"]  # validated structured output
+    model = data["model"]
+    cached = data["cached"]
+else:
+    error = data["error"]
+    fallback = data["fallback"]
+```
+
+### Tests (21 total)
+- Prompt registry: load, get, render, not_found (4)
+- Validation: ok, missing_field, not_dict (3)
+- Cache: key_deterministic, key_differs, miss_no_redis, roundtrip (4)
+- LLM service: complete_smoke, unknown_prompt, caches_result, replay_miss, replay_hit, retry_on_invalid, retry_exhausted (7)
+- Provider: fake_records_calls (1)
+- API integration: /llm/complete, /ai/health (2)
+
+### How to verify
+1. `cd services/genai && uv run pytest -v` — 21 tests green
+2. `cd libs/medbal_common && uv run pytest -v` — 14 tests green (unchanged)
+3. `docker compose build genai` — succeeds
+4. With compose up + real ANTHROPIC_API_KEY or GEMINI_API_KEY:
+   ```
+   curl -X POST :8080/api/genai/llm/complete \
+     -H 'Content-Type: application/json' \
+     -d '{"purpose":"smoke","prompt_id":"smoke","version":1,"input":{"text":"hi"}}'
+   ```
+   Returns validated JSON with `ok:true`; second call shows `cached:true`.
+5. `curl :8080/api/genai/ai/health` — returns stats with prompts_loaded >= 2
+
+### Decisions
+- Provider selection: `LLM_PROVIDER` env (claude|gemini); falls back to FakeProvider if key missing (never crashes)
+- DEMO_MODE read from env at call time (not cached at import) so tests can switch modes
+- Sync provider calls wrapped in `run_in_executor` for async compatibility
+- DB logging is best-effort (warning on failure, never blocks response)
+- Prompts stored as YAML in `prompts/` dir, copied to Docker image
+
+### Open issues
+- Narration endpoint (`/narrate/{order_id}`) deferred to P15 (firewall)
+- DTA/credit-memo PDF generation deferred to later phase
+- Copilot chat endpoint deferred to later phase
+
+### Requests to other lanes
+- None

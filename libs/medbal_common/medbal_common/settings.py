@@ -21,6 +21,7 @@ class Settings(BaseSettings):
 
     LLM_PROVIDER: str = "gemini"
     GEMINI_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str = ""
     LLM_MODEL_FAST: str = "gemini-3.8-flash"
     LLM_MODEL_SMART: str = "gemini-3.8-flash"
 
@@ -39,6 +40,9 @@ class Settings(BaseSettings):
     def _is_set(v: str) -> bool:
         return bool(v) and not v.startswith("<paste-")
 
+    def has_anthropic(self) -> bool:
+        return self._is_set(self.ANTHROPIC_API_KEY)
+
     def has_gemini(self) -> bool:
         return self._is_set(self.GEMINI_API_KEY)
 
@@ -50,6 +54,7 @@ class Settings(BaseSettings):
 
     def key_status(self) -> dict[str, str]:
         return {
+            "ANTHROPIC_API_KEY": "set" if self.has_anthropic() else "missing",
             "GEMINI_API_KEY": "set" if self.has_gemini() else "missing",
             "QPIAI_OPT_URL": "set" if self._is_set(self.QPIAI_OPT_URL) else "missing",
             "QPIAI_OPT_TOKEN": "set" if self._is_set(self.QPIAI_OPT_TOKEN) else "missing",

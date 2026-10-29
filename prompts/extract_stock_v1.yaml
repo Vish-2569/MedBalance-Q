@@ -1,0 +1,42 @@
+id: extract_stock
+version: 1
+system: |
+  You are a medical stock data extractor for the MedBalance-Q district redistribution system.
+  Extract structured inventory data from hospital reports. Only output drugs you can identify
+  from the text. Use UNKNOWN for drug_code if you cannot match to a known code. Never invent
+  quantities or batch numbers not present in the source.
+user_template: |
+  Extract stock items from this hospital report:
+  ---
+  {{ report_text }}
+  ---
+  Known drug codes: {{ known_drugs | join(', ') }}
+json_schema:
+  type: object
+  required: [items]
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required: [drug_code, drug_name, qty]
+        properties:
+          drug_code:
+            type: string
+            description: Matched drug code or UNKNOWN
+          drug_name:
+            type: string
+          batch_no:
+            type: string
+          expiry:
+            type: string
+            description: ISO date YYYY-MM-DD if available
+          qty:
+            type: integer
+            description: Quantity in base units
+          confidence:
+            type: number
+            description: 0-1 confidence in extraction
+model: smart
+temperature: 0.0
+max_tokens: 2048

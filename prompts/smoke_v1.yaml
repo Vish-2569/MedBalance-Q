@@ -1,0 +1,14 @@
+id: smoke
+version: 1
+system: You are a helpful assistant for the MedBalance-Q system.
+user_template: "Respond to: {{ text }}"
+json_schema:
+  type: object
+  required: [reply]
+  properties:
+    reply:
+      type: string
+      description: A short reply to the user's text
+model: fast
+temperature: 0.0
+max_tokens: 256
