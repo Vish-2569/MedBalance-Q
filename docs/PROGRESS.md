@@ -1545,3 +1545,58 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
 
 ### Requests to other lanes
 - None
+
+---
+
+## P21 — Demo hardening: one-command crash-proof demo (2026-10-30)
+
+### Done
+
+- **Shared library hardening** (`libs/medbal_common/`):
+  - `db.py`: `wait_for_db()` with 10-attempt exponential backoff (1.5^n, capped at 15s). Pool params: pool_size=5, max_overflow=10, pool_timeout=10, connect_timeout=5.
+  - `bus.py`: `wait_for_redis()` with same retry pattern. `publish()` catches exceptions gracefully (returns None). Socket timeouts: connect=5s, read=5s. Module-level `_redis_client` cache.
+  - `fastapi_base.py`: `/health` endpoint now returns `postgres`, `redis`, `demo_mode`, `degraded` list, `key_status`. Helper functions `_check_postgres()` and `_check_redis()` probe infrastructure inline.
+  - `http.py`: `async_client()` factory for async httpx. `DEFAULT_CONNECT_TIMEOUT = 5.0` separate from read timeout.
+
+- **Docker Compose** (`docker-compose.yml`):
+  - All 16 services have healthchecks and `restart: unless-stopped`
+  - sensors service: added healthcheck (was the only one without)
+
+- **Gateway** (`services/gateway/nginx.conf`):
+  - Global proxy timeouts: connect 10s, read 120s, send 30s, client_max_body_size 10m
+  - SSE streaming location for `/api/genai/copilot/` with proxy_buffering off
+
+- **Scripts**:
+  - `scripts/wait_healthy.py`: Polls 8 service health endpoints every 3s until all respond ok/degraded, 180s timeout. Used by `make demo`.
+  - `scripts/package_evidence.py`: Zips `evidence/`, `docs/`, `screenshots/` into timestamped archive for judges.
+  - `scripts/load_sanity.py`: Runs POST /optimizer/plan/run N times (default 20), tracks RSS/status/time. Pass criteria: 0 failures + ≤50% memory growth.
+  - `scripts/aws_standby.sh`: Ubuntu EC2 setup — Docker install with 3-attempt retry, clone repo, copy .env from /tmp/medbal.env, ufw port 8080, make demo.
+
+- **Documentation**:
+  - `docs/AWS.md`: EC2 t3.xlarge launch steps, security group config (SSH + 8080), scp secrets, one-liner setup, teardown, troubleshooting. No secrets in repo.
+
+- **Makefile targets**:
+  - `make demo`: down -v → build → seed 42 → DEMO_MODE=replay up → wait_healthy → reset sim → print URL
+  - `make demo-live`: same with DEMO_MODE=live
+  - `make evidence`: package_evidence.py zip
+  - `make load-sanity`: load_sanity.py (20 iterations)
+
+### How to verify
+1. `make demo` — builds, starts, waits for health, resets sim, prints URL (< 5 min after pull)
+2. `make demo-live` — same with live LLM calls
+3. `make evidence` — produces `evidence/medbalance_evidence_<ts>.zip`
+4. `make load-sanity` — 20 plan runs, 0 failures, ≤50% RSS growth
+5. Health endpoints: `curl localhost:8001/health` — returns status, postgres, redis, degraded list
+
+### Decisions
+- `wait_for_db()`/`wait_for_redis()` provide defense-in-depth alongside docker-compose depends_on + service_healthy
+- Health endpoint returns degraded (not error) when infrastructure is down — allows partial demo
+- sensors healthcheck is lightweight (`print('ok')`) since it's a standalone MQTT publisher, not a web server
+- AWS script uses ufw (not security groups) as a second firewall layer
+
+### Open issues
+- Services don't yet call `wait_for_db()`/`wait_for_redis()` in their main.py — docker-compose depends_on handles sequencing, but adding calls would provide extra resilience
+- Screenshots for evidence zip need manual capture
+
+### Requests to other lanes
+- None

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import threading
+import time
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
@@ -11,14 +13,49 @@ import redis
 
 from medbal_common.settings import settings
 
+_log = logging.getLogger("medbal.bus")
+
+MAX_CONNECT_RETRIES = 10
+RETRY_BACKOFF_BASE = 1.5
+
+_redis_client: redis.Redis | None = None
+
 
 def get_redis() -> redis.Redis:
-    return redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.Redis.from_url(
+            settings.REDIS_URL, decode_responses=True,
+            socket_connect_timeout=5, socket_timeout=5,
+        )
+    return _redis_client
 
 
-def publish(stream: str, data: dict[str, Any]) -> str:
+def wait_for_redis(retries: int = MAX_CONNECT_RETRIES) -> redis.Redis:
+    """Get Redis with startup retry/backoff."""
     r = get_redis()
-    return r.xadd(stream, {"data": json.dumps(data)})
+    for attempt in range(1, retries + 1):
+        try:
+            r.ping()
+            _log.info("Redis ready (attempt %d)", attempt)
+            return r
+        except Exception as exc:
+            delay = min(RETRY_BACKOFF_BASE ** attempt, 15)
+            _log.warning("Redis not ready (attempt %d/%d): %s — retrying in %.1fs",
+                         attempt, retries, exc, delay)
+            if attempt < retries:
+                time.sleep(delay)
+    _log.error("Redis unreachable after %d attempts", retries)
+    return r
+
+
+def publish(stream: str, data: dict[str, Any]) -> str | None:
+    try:
+        r = get_redis()
+        return r.xadd(stream, {"data": json.dumps(data)})
+    except Exception as exc:
+        _log.warning("publish failed on %s: %s", stream, exc)
+        return None
 
 
 def consume(

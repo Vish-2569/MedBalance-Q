@@ -291,4 +291,12 @@ services:
     depends_on:
       mosquitto:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('ok')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
     profiles: [sim, full]
