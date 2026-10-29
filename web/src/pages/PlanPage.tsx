@@ -32,9 +32,28 @@ export default function PlanPage() {
     mutationFn: () => api.runPlan('live'),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['planDemo'] }),
   });
+  const runOptimizerButton = (
+    <button onClick={() => runMut.mutate()} disabled={runMut.isPending}
+      className="flex items-center gap-2 px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+      {runMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cpu className="w-4 h-4" />}
+      Run Optimizer
+    </button>
+  );
 
   if (isLoading) return <div className="flex-1 flex items-center justify-center text-slate-400"><Loader2 className="w-6 h-6 animate-spin" /></div>;
-  if (!demo) return <div className="flex-1 flex items-center justify-center text-slate-400 p-8">No plan data. Run the optimizer first.</div>;
+  if (!demo?.plan) {
+    return (
+      <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-slate-800">Redistribution Plan</h1>
+          {runOptimizerButton}
+        </div>
+        <div role="status" className="flex-1 flex items-center justify-center text-slate-500 p-8">
+          No saved plan data. Run the optimizer to generate a redistribution plan.
+        </div>
+      </div>
+    );
+  }
 
   const { plan, orders } = demo;
   const sb = solverBadge(plan.solver_tier);
@@ -50,11 +69,7 @@ export default function PlanPage() {
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-800">Redistribution Plan</h1>
-        <button onClick={() => runMut.mutate()} disabled={runMut.isPending}
-          className="flex items-center gap-2 px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700">
-          {runMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cpu className="w-4 h-4" />}
-          Run Optimizer
-        </button>
+        {runOptimizerButton}
       </div>
 
       {/* Solver tier + violations */}

@@ -98,7 +98,7 @@ function AuditBadge({ auditStatus }: { auditStatus?: { ok: boolean; entries: num
   const [adminOpen, setAdminOpen] = useState(false);
   const [confirmTamper, setConfirmTamper] = useState(false);
   const clickCountRef = useRef(0);
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const tamperMut = useMutation({
     mutationFn: api.tamperDemo,

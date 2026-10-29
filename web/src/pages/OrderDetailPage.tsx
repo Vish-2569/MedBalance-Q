@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, ArrowRight, CheckCircle, XCircle, Snowflake, FileText,
-  Package, Clock, MapPin, User, Download, Loader2, AlertTriangle, Truck,
+  Package, MapPin, User, Download, Loader2, AlertTriangle, Truck,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn, statusColor, shortDate } from '@/lib/utils';

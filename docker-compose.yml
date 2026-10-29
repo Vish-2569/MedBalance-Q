@@ -97,11 +97,10 @@ services:
 
   gateway:
     build:
-      context: ./services/gateway
+      context: .
+      dockerfile: services/gateway/Dockerfile
     image: medbal-gateway
     ports: ["8080:8080"]
-    volumes:
-      - ./web:/usr/share/nginx/html:ro
     depends_on:
       core-api:
         condition: service_healthy

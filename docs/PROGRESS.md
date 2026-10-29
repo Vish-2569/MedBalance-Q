@@ -1622,3 +1622,26 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
 
 ### Requests to other lanes
 - None
+
+## Runtime — Frontend blank page (2026-10-30)
+
+### Done
+- Fixed the gateway serving Vite's TypeScript source instead of its compiled frontend assets, which caused the browser to reject the module script MIME type and show a blank page.
+- Updated the gateway image to build and serve `web/dist`; removed the source bind mount that overrode the production files.
+- Fixed TypeScript build errors that prevented generating the frontend bundle.
+- Added an empty-plan state with a Run Optimizer action instead of crashing when the API has no saved plan.
+
+### How to verify
+1. `docker compose --profile full up -d --build gateway`
+2. Open `http://localhost:8080` and confirm the application renders.
+3. Check `/assets/` JavaScript files are served as JavaScript modules.
+4. `cd web; npm run build`
+
+### Decisions
+- Build the frontend as a stage in the gateway image so a fresh Compose startup does not depend on a pre-generated local `dist` directory.
+
+### Open issues
+- None
+
+### Requests to other lanes
+- None
