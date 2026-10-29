@@ -1600,3 +1600,25 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
 
 ### Requests to other lanes
 - None
+
+## Runtime — Full Compose startup (2026-10-30)
+
+### Done
+- Fixed the optimizer's evidence-directory resolution for both container and repository layouts; the full stack previously restarted because `Path.parents` was indexed beyond the container path.
+- Persisted optimizer evidence JSON to `evidence/qpiai_runs` through a Compose bind mount.
+- Declared and installed the optimizer's missing `networkx` runtime dependency used by facility zoning.
+
+### How to verify
+1. `docker compose --profile full up -d --build`
+2. `docker compose --profile full ps` — all services report healthy.
+3. `docker compose exec -T optimizer python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8005/health').status)"` — prints 200.
+4. `cd services/optimizer; uv run pytest tests/test_solver_chain.py`
+
+### Decisions
+- Kept the repository evidence location for local execution and mounted the same path into the optimizer container.
+
+### Open issues
+- None
+
+### Requests to other lanes
+- None

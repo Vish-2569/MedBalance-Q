@@ -172,6 +172,8 @@ services:
       dockerfile: services/optimizer/Dockerfile
     image: medbal-optimizer
     ports: ["8005:8005"]
+    volumes:
+      - ./evidence/qpiai_runs:/app/evidence/qpiai_runs
     depends_on:
       postgres:
         condition: service_healthy
