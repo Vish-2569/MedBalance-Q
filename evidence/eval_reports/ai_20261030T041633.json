@@ -1,0 +1,256 @@
+{
+  "timestamp": "20261030T041633",
+  "version": 1,
+  "results": {
+    "extraction": {
+      "drug_code_exact_match": 1.0,
+      "qty_accuracy": 1.0,
+      "expiry_accuracy": 1.0,
+      "batch_accuracy": 1.0,
+      "total_items": 120,
+      "per_style": {
+        "fhir": {
+          "drug_code": 1.0,
+          "qty": 1.0,
+          "expiry": 1.0,
+          "batch": 1.0,
+          "n": 27
+        },
+        "csv": {
+          "drug_code": 1.0,
+          "qty": 1.0,
+          "expiry": 1.0,
+          "batch": 1.0,
+          "n": 28
+        },
+        "chat_kn": {
+          "drug_code": 1.0,
+          "qty": 1.0,
+          "expiry": 1.0,
+          "batch": 1.0,
+          "n": 31
+        },
+        "text_messy": {
+          "drug_code": 1.0,
+          "qty": 1.0,
+          "expiry": 1.0,
+          "batch": 1.0,
+          "n": 34
+        }
+      },
+      "gates": {
+        "drug_code_exact_match": true,
+        "qty_accuracy": true,
+        "expiry_accuracy": true,
+        "batch_accuracy": true
+      }
+    },
+    "anomaly": {
+      "recall": 0.85,
+      "fpr": 0.0,
+      "precision": 1.0,
+      "tp": 17,
+      "fp": 0,
+      "fn": 3,
+      "tn": 40,
+      "total": 60,
+      "per_rule": {
+        "qty_spike": {
+          "tp": 5,
+          "fp": 0,
+          "fn": 0
+        },
+        "past_expiry": {
+          "tp": 4,
+          "fp": 0,
+          "fn": 0
+        },
+        "far_future_expiry": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0
+        },
+        "batch_mismatch": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 3
+        },
+        "unknown_drug": {
+          "tp": 4,
+          "fp": 0,
+          "fn": 0
+        },
+        "low_confidence": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0
+        }
+      },
+      "gates": {
+        "recall": false,
+        "fpr": true
+      }
+    },
+    "narration": {
+      "firewall_pass_rate": 1.0,
+      "passed": 50,
+      "failed": 0,
+      "total": 50,
+      "per_order_sample": [
+        {
+          "id": "nar-001",
+          "grounding_ok": true
+        },
+        {
+          "id": "nar-002",
+          "grounding_ok": true
+        },
+        {
+          "id": "nar-003",
+          "grounding_ok": true
+        },
+        {
+          "id": "nar-004",
+          "grounding_ok": true
+        },
+        {
+          "id": "nar-005",
+          "grounding_ok": true
+        }
+      ],
+      "gates": {
+        "firewall_pass_rate": true
+      }
+    },
+    "forecast": {
+      "baseline_mape": 0.113,
+      "adjusted_mape": 0.0866,
+      "pairs_evaluated": 20,
+      "adjusted_better": true,
+      "gates": {
+        "adjusted_mape_better": true
+      }
+    },
+    "copilot": {
+      "tool_choice_accuracy": 1.0,
+      "numeric_match": 1.0,
+      "total": 12,
+      "per_question": [
+        {
+          "id": "q01",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "get_district_overview"
+          ]
+        },
+        {
+          "id": "q02",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "get_stock_position"
+          ]
+        },
+        {
+          "id": "q03",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "why_not"
+          ]
+        },
+        {
+          "id": "q04",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "what_if"
+          ]
+        },
+        {
+          "id": "q05",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "explain_order"
+          ]
+        },
+        {
+          "id": "q06",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "get_coldchain_status"
+          ]
+        },
+        {
+          "id": "q07",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "get_audit_trail"
+          ]
+        },
+        {
+          "id": "q08",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "compare_policies"
+          ]
+        },
+        {
+          "id": "q09",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "get_stock_position"
+          ]
+        },
+        {
+          "id": "q10",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "why_not"
+          ]
+        },
+        {
+          "id": "q11",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "what_if"
+          ]
+        },
+        {
+          "id": "q12",
+          "tool_match": true,
+          "contains_match": true,
+          "tools_used": [
+            "why_not"
+          ]
+        }
+      ],
+      "gates": {
+        "tool_choice_accuracy": true,
+        "numeric_match": true
+      }
+    }
+  },
+  "gates": {
+    "extraction_drug_code_exact_match": true,
+    "extraction_qty_accuracy": true,
+    "extraction_expiry_accuracy": true,
+    "extraction_batch_accuracy": true,
+    "anomaly_recall": false,
+    "anomaly_fpr": true,
+    "narration_firewall_pass_rate": true,
+    "forecast_adjusted_mape_better": true,
+    "copilot_tool_choice_accuracy": true,
+    "copilot_numeric_match": true
+  },
+  "all_gates_pass": false,
+  "elapsed_s": 0.0
+}

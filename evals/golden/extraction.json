@@ -1,0 +1,489 @@
+{
+  "version": 1,
+  "description": "Golden extraction evaluation set for MedBalance-Q (40 reports, 10 per hospital style)",
+  "reports": [
+    {
+      "id": "ext-001",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-01",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-01T09:00:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"PCM\"}]},\"countingDateTime\":\"2026-11-01\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Paracetamol 500mg\"}]},\"quantity\":{\"value\":500},\"lot\":{\"lotNumber\":\"B-PCM-H1-011\",\"expiry\":\"2027-01-15\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"INSULIN\"}]},\"countingDateTime\":\"2026-11-01\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Insulin Human 40 IU/ml\"}]},\"quantity\":{\"value\":30},\"lot\":{\"lotNumber\":\"B-INS-H1-011\",\"expiry\":\"2027-02-28\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 500, "unit": "tablet", "batch_no": "B-PCM-H1-011", "expiry": "2027-01-15"},
+        {"drug_code": "INSULIN", "qty": 30, "unit": "vial", "batch_no": "B-INS-H1-011", "expiry": "2027-02-28"}
+      ]
+    },
+    {
+      "id": "ext-002",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-03",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-03T08:30:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"AMOX\"}]},\"countingDateTime\":\"2026-11-03\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Amoxicillin 250mg\"}]},\"quantity\":{\"value\":300},\"lot\":{\"lotNumber\":\"B-AMX-H1-012\",\"expiry\":\"2027-03-31\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"ORS\"}]},\"countingDateTime\":\"2026-11-03\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"ORS Sachet\"}]},\"quantity\":{\"value\":200},\"lot\":{\"lotNumber\":\"B-ORS-H1-012\",\"expiry\":\"2027-06-30\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"METF\"}]},\"countingDateTime\":\"2026-11-03\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Metformin 500mg\"}]},\"quantity\":{\"value\":450},\"lot\":{\"lotNumber\":\"B-MET-H1-012\",\"expiry\":\"2027-04-15\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "AMOX", "qty": 300, "unit": "capsule", "batch_no": "B-AMX-H1-012", "expiry": "2027-03-31"},
+        {"drug_code": "ORS", "qty": 200, "unit": "sachet", "batch_no": "B-ORS-H1-012", "expiry": "2027-06-30"},
+        {"drug_code": "METF", "qty": 450, "unit": "tablet", "batch_no": "B-MET-H1-012", "expiry": "2027-04-15"}
+      ]
+    },
+    {
+      "id": "ext-003",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-05",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-05T10:00:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"IFA\"}]},\"countingDateTime\":\"2026-11-05\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Iron Folic Acid\"}]},\"quantity\":{\"value\":1200},\"lot\":{\"lotNumber\":\"B-IFA-H1-013\",\"expiry\":\"2027-05-20\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"AMLODIPINE\"}]},\"countingDateTime\":\"2026-11-05\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Amlodipine 5mg\"}]},\"quantity\":{\"value\":600},\"lot\":{\"lotNumber\":\"B-AML-H1-013\",\"expiry\":\"2027-08-10\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "IFA", "qty": 1200, "unit": "tablet", "batch_no": "B-IFA-H1-013", "expiry": "2027-05-20"},
+        {"drug_code": "AMLODIPINE", "qty": 600, "unit": "tablet", "batch_no": "B-AML-H1-013", "expiry": "2027-08-10"}
+      ]
+    },
+    {
+      "id": "ext-004",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-07",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-07T09:15:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"RL\"}]},\"countingDateTime\":\"2026-11-07\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Ringer Lactate 500ml\"}]},\"quantity\":{\"value\":80},\"lot\":{\"lotNumber\":\"B-RL-H1-014\",\"expiry\":\"2027-09-01\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"CEFTRIAXONE\"}]},\"countingDateTime\":\"2026-11-07\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Ceftriaxone 1g Inj\"}]},\"quantity\":{\"value\":40},\"lot\":{\"lotNumber\":\"B-CEF-H1-014\",\"expiry\":\"2027-04-01\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"ZINC\"}]},\"countingDateTime\":\"2026-11-07\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Zinc Dispersible 20mg\"}]},\"quantity\":{\"value\":350},\"lot\":{\"lotNumber\":\"B-ZNC-H1-014\",\"expiry\":\"2027-07-31\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"ALBENDAZOLE\"}]},\"countingDateTime\":\"2026-11-07\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Albendazole 400mg\"}]},\"quantity\":{\"value\":180},\"lot\":{\"lotNumber\":\"B-ALB-H1-014\",\"expiry\":\"2027-06-15\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "RL", "qty": 80, "unit": "bottle", "batch_no": "B-RL-H1-014", "expiry": "2027-09-01"},
+        {"drug_code": "CEFTRIAXONE", "qty": 40, "unit": "vial", "batch_no": "B-CEF-H1-014", "expiry": "2027-04-01"},
+        {"drug_code": "ZINC", "qty": 350, "unit": "tablet", "batch_no": "B-ZNC-H1-014", "expiry": "2027-07-31"},
+        {"drug_code": "ALBENDAZOLE", "qty": 180, "unit": "tablet", "batch_no": "B-ALB-H1-014", "expiry": "2027-06-15"}
+      ]
+    },
+    {
+      "id": "ext-005",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-09",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-09T11:00:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"PCM\"}]},\"countingDateTime\":\"2026-11-09\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Paracetamol 500mg\"}]},\"quantity\":{\"value\":320},\"lot\":{\"lotNumber\":\"B-PCM-H1-015\",\"expiry\":\"2026-12-20\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"OXYTOCIN\"}]},\"countingDateTime\":\"2026-11-09\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Oxytocin 5IU/ml Inj\"}]},\"quantity\":{\"value\":12},\"lot\":{\"lotNumber\":\"B-OXY-H1-015\",\"expiry\":\"2027-01-10\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 320, "unit": "tablet", "batch_no": "B-PCM-H1-015", "expiry": "2026-12-20"},
+        {"drug_code": "OXYTOCIN", "qty": 12, "unit": "ampoule", "batch_no": "B-OXY-H1-015", "expiry": "2027-01-10"}
+      ]
+    },
+    {
+      "id": "ext-006",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-11",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-11T08:45:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"INSULIN\"}]},\"countingDateTime\":\"2026-11-11\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Insulin Human 40 IU/ml\"}]},\"quantity\":{\"value\":5},\"lot\":{\"lotNumber\":\"B-INS-H1-016\",\"expiry\":\"2026-11-15\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"AMOX\"}]},\"countingDateTime\":\"2026-11-11\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Amoxicillin 250mg\"}]},\"quantity\":{\"value\":180},\"lot\":{\"lotNumber\":\"B-AMX-H1-016\",\"expiry\":\"2027-02-14\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"IFA\"}]},\"countingDateTime\":\"2026-11-11\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Iron Folic Acid\"}]},\"quantity\":{\"value\":900},\"lot\":{\"lotNumber\":\"B-IFA-H1-016\",\"expiry\":\"2027-03-20\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "INSULIN", "qty": 5, "unit": "vial", "batch_no": "B-INS-H1-016", "expiry": "2026-11-15"},
+        {"drug_code": "AMOX", "qty": 180, "unit": "capsule", "batch_no": "B-AMX-H1-016", "expiry": "2027-02-14"},
+        {"drug_code": "IFA", "qty": 900, "unit": "tablet", "batch_no": "B-IFA-H1-016", "expiry": "2027-03-20"}
+      ]
+    },
+    {
+      "id": "ext-007",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-13",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-13T09:30:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"ORS\"}]},\"countingDateTime\":\"2026-11-13\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"ORS Sachet\"}]},\"quantity\":{\"value\":75},\"lot\":{\"lotNumber\":\"B-ORS-H1-017\",\"expiry\":\"2027-05-01\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"ZINC\"}]},\"countingDateTime\":\"2026-11-13\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Zinc Dispersible 20mg\"}]},\"quantity\":{\"value\":200},\"lot\":{\"lotNumber\":\"B-ZNC-H1-017\",\"expiry\":\"2027-10-15\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "ORS", "qty": 75, "unit": "sachet", "batch_no": "B-ORS-H1-017", "expiry": "2027-05-01"},
+        {"drug_code": "ZINC", "qty": 200, "unit": "tablet", "batch_no": "B-ZNC-H1-017", "expiry": "2027-10-15"}
+      ]
+    },
+    {
+      "id": "ext-008",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-15",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-15T10:15:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"METF\"}]},\"countingDateTime\":\"2026-11-15\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Metformin 500mg\"}]},\"quantity\":{\"value\":700},\"lot\":{\"lotNumber\":\"B-MET-H1-018\",\"expiry\":\"2027-07-01\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"AMLODIPINE\"}]},\"countingDateTime\":\"2026-11-15\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Amlodipine 5mg\"}]},\"quantity\":{\"value\":400},\"lot\":{\"lotNumber\":\"B-AML-H1-018\",\"expiry\":\"2027-09-30\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"PCM\"}]},\"countingDateTime\":\"2026-11-15\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Paracetamol 500mg\"}]},\"quantity\":{\"value\":250},\"lot\":{\"lotNumber\":\"B-PCM-H1-018\",\"expiry\":\"2027-02-28\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "METF", "qty": 700, "unit": "tablet", "batch_no": "B-MET-H1-018", "expiry": "2027-07-01"},
+        {"drug_code": "AMLODIPINE", "qty": 400, "unit": "tablet", "batch_no": "B-AML-H1-018", "expiry": "2027-09-30"},
+        {"drug_code": "PCM", "qty": 250, "unit": "tablet", "batch_no": "B-PCM-H1-018", "expiry": "2027-02-28"}
+      ]
+    },
+    {
+      "id": "ext-009",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-17",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-17T09:00:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"CEFTRIAXONE\"}]},\"countingDateTime\":\"2026-11-17\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Ceftriaxone 1g Inj\"}]},\"quantity\":{\"value\":25},\"lot\":{\"lotNumber\":\"B-CEF-H1-019\",\"expiry\":\"2027-03-15\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"RL\"}]},\"countingDateTime\":\"2026-11-17\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Ringer Lactate 500ml\"}]},\"quantity\":{\"value\":60},\"lot\":{\"lotNumber\":\"B-RL-H1-019\",\"expiry\":\"2027-11-30\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "CEFTRIAXONE", "qty": 25, "unit": "vial", "batch_no": "B-CEF-H1-019", "expiry": "2027-03-15"},
+        {"drug_code": "RL", "qty": 60, "unit": "bottle", "batch_no": "B-RL-H1-019", "expiry": "2027-11-30"}
+      ]
+    },
+    {
+      "id": "ext-010",
+      "facility_code": "H1",
+      "style": "fhir",
+      "report_date": "2026-11-19",
+      "raw_input": "{\"resourceType\":\"InventoryReport\",\"status\":\"active\",\"countType\":\"snapshot\",\"reportedDateTime\":\"2026-11-19T08:00:00+05:30\",\"inventoryListing\":[{\"itemStatus\":{\"coding\":[{\"code\":\"ALBENDAZOLE\"}]},\"countingDateTime\":\"2026-11-19\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Albendazole 400mg\"}]},\"quantity\":{\"value\":500},\"lot\":{\"lotNumber\":\"B-ALB-H1-020\",\"expiry\":\"2027-08-20\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"PCM\"}]},\"countingDateTime\":\"2026-11-19\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Paracetamol 500mg\"}]},\"quantity\":{\"value\":150},\"lot\":{\"lotNumber\":\"B-PCM-H1-020\",\"expiry\":\"2026-12-10\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"INSULIN\"}]},\"countingDateTime\":\"2026-11-19\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"Insulin Human 40 IU/ml\"}]},\"quantity\":{\"value\":20},\"lot\":{\"lotNumber\":\"B-INS-H1-020\",\"expiry\":\"2027-01-31\"}}]},{\"itemStatus\":{\"coding\":[{\"code\":\"ORS\"}]},\"countingDateTime\":\"2026-11-19\",\"items\":[{\"category\":{\"coding\":[{\"display\":\"ORS Sachet\"}]},\"quantity\":{\"value\":100},\"lot\":{\"lotNumber\":\"B-ORS-H1-020\",\"expiry\":\"2027-04-30\"}}]}]}",
+      "expected_items": [
+        {"drug_code": "ALBENDAZOLE", "qty": 500, "unit": "tablet", "batch_no": "B-ALB-H1-020", "expiry": "2027-08-20"},
+        {"drug_code": "PCM", "qty": 150, "unit": "tablet", "batch_no": "B-PCM-H1-020", "expiry": "2026-12-10"},
+        {"drug_code": "INSULIN", "qty": 20, "unit": "vial", "batch_no": "B-INS-H1-020", "expiry": "2027-01-31"},
+        {"drug_code": "ORS", "qty": 100, "unit": "sachet", "batch_no": "B-ORS-H1-020", "expiry": "2027-04-30"}
+      ]
+    },
+
+    {
+      "id": "ext-011",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-01",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nParacetamol 500mg,B-PCM-H2-011,12/2026,800,tablet\nAmoxicillin 250mg,,03/2027,250,capsule\nMetformin 500mg,B-MET-H2-011,01/2027,600,tablet",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 800, "unit": "tablet", "batch_no": "B-PCM-H2-011", "expiry": "2026-12-01"},
+        {"drug_code": "AMOX", "qty": 250, "unit": "capsule", "batch_no": null, "expiry": "2027-03-01"},
+        {"drug_code": "METF", "qty": 600, "unit": "tablet", "batch_no": "B-MET-H2-011", "expiry": "2027-01-01"}
+      ]
+    },
+    {
+      "id": "ext-012",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-03",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nParacetamol 500mg,B-PCM-H2-012,11/2026,15,strip\nInsulin Human 40IU,B-INS-H2-012,02/2027,25,vial",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 150, "unit": "tablet", "batch_no": "B-PCM-H2-012", "expiry": "2026-11-01", "note": "strip->tablet x10"},
+        {"drug_code": "INSULIN", "qty": 25, "unit": "vial", "batch_no": "B-INS-H2-012", "expiry": "2027-02-01"}
+      ]
+    },
+    {
+      "id": "ext-013",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-05",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nORS Sachet,,01/2027,400,sachet\nIron Folic Acid,B-IFA-H2-013,04/2027,2000,tablet\nAmlodipine 5mg,B-AML-H2-013,06/2027,350,tablet",
+      "expected_items": [
+        {"drug_code": "ORS", "qty": 400, "unit": "sachet", "batch_no": null, "expiry": "2027-01-01"},
+        {"drug_code": "IFA", "qty": 2000, "unit": "tablet", "batch_no": "B-IFA-H2-013", "expiry": "2027-04-01"},
+        {"drug_code": "AMLODIPINE", "qty": 350, "unit": "tablet", "batch_no": "B-AML-H2-013", "expiry": "2027-06-01"}
+      ]
+    },
+    {
+      "id": "ext-014",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-07",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nRinger Lactate 500ml,B-RL-H2-014,08/2027,45,bottle\nCeftriaxone 1g Inj,B-CEF-H2-014,05/2027,30,vial\nZinc Dispersible 20mg,,09/2027,500,tablet\nAlbendazole 400mg,B-ALB-H2-014,07/2027,250,tablet",
+      "expected_items": [
+        {"drug_code": "RL", "qty": 45, "unit": "bottle", "batch_no": "B-RL-H2-014", "expiry": "2027-08-01"},
+        {"drug_code": "CEFTRIAXONE", "qty": 30, "unit": "vial", "batch_no": "B-CEF-H2-014", "expiry": "2027-05-01"},
+        {"drug_code": "ZINC", "qty": 500, "unit": "tablet", "batch_no": null, "expiry": "2027-09-01"},
+        {"drug_code": "ALBENDAZOLE", "qty": 250, "unit": "tablet", "batch_no": "B-ALB-H2-014", "expiry": "2027-07-01"}
+      ]
+    },
+    {
+      "id": "ext-015",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-09",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nAmoxicillin 250mg,B-AMX-H2-015,02/2027,30,strip\nOxytocin 5IU Inj,B-OXY-H2-015,12/2026,8,ampoule",
+      "expected_items": [
+        {"drug_code": "AMOX", "qty": 300, "unit": "capsule", "batch_no": "B-AMX-H2-015", "expiry": "2027-02-01", "note": "strip->capsule x10"},
+        {"drug_code": "OXYTOCIN", "qty": 8, "unit": "ampoule", "batch_no": "B-OXY-H2-015", "expiry": "2026-12-01"}
+      ]
+    },
+    {
+      "id": "ext-016",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-11",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nParacetamol 500mg,B-PCM-H2-016,01/2027,1200,tablet\nMetformin 500mg,,03/2027,800,tablet\nInsulin Human 40IU,B-INS-H2-016,04/2027,10,vial",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 1200, "unit": "tablet", "batch_no": "B-PCM-H2-016", "expiry": "2027-01-01"},
+        {"drug_code": "METF", "qty": 800, "unit": "tablet", "batch_no": null, "expiry": "2027-03-01"},
+        {"drug_code": "INSULIN", "qty": 10, "unit": "vial", "batch_no": "B-INS-H2-016", "expiry": "2027-04-01"}
+      ]
+    },
+    {
+      "id": "ext-017",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-13",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nIron Folic Acid,B-IFA-H2-017,05/2027,50,strip\nORS Sachet,B-ORS-H2-017,02/2027,150,sachet",
+      "expected_items": [
+        {"drug_code": "IFA", "qty": 500, "unit": "tablet", "batch_no": "B-IFA-H2-017", "expiry": "2027-05-01", "note": "strip->tablet x10"},
+        {"drug_code": "ORS", "qty": 150, "unit": "sachet", "batch_no": "B-ORS-H2-017", "expiry": "2027-02-01"}
+      ]
+    },
+    {
+      "id": "ext-018",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-15",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nAmlodipine 5mg,B-AML-H2-018,10/2027,220,tablet\nRinger Lactate 500ml,,06/2027,30,bottle\nParacetamol 500mg,B-PCM-H2-018,12/2026,20,strip",
+      "expected_items": [
+        {"drug_code": "AMLODIPINE", "qty": 220, "unit": "tablet", "batch_no": "B-AML-H2-018", "expiry": "2027-10-01"},
+        {"drug_code": "RL", "qty": 30, "unit": "bottle", "batch_no": null, "expiry": "2027-06-01"},
+        {"drug_code": "PCM", "qty": 200, "unit": "tablet", "batch_no": "B-PCM-H2-018", "expiry": "2026-12-01", "note": "strip->tablet x10"}
+      ]
+    },
+    {
+      "id": "ext-019",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-17",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nZinc Dispersible 20mg,B-ZNC-H2-019,11/2027,300,tablet\nCeftriaxone 1g Inj,,03/2027,15,vial\nAmoxicillin 250mg,B-AMX-H2-019,04/2027,400,capsule\nAlbendazole 400mg,B-ALB-H2-019,08/2027,100,tablet",
+      "expected_items": [
+        {"drug_code": "ZINC", "qty": 300, "unit": "tablet", "batch_no": "B-ZNC-H2-019", "expiry": "2027-11-01"},
+        {"drug_code": "CEFTRIAXONE", "qty": 15, "unit": "vial", "batch_no": null, "expiry": "2027-03-01"},
+        {"drug_code": "AMOX", "qty": 400, "unit": "capsule", "batch_no": "B-AMX-H2-019", "expiry": "2027-04-01"},
+        {"drug_code": "ALBENDAZOLE", "qty": 100, "unit": "tablet", "batch_no": "B-ALB-H2-019", "expiry": "2027-08-01"}
+      ]
+    },
+    {
+      "id": "ext-020",
+      "facility_code": "H2",
+      "style": "csv",
+      "report_date": "2026-11-19",
+      "raw_input": "drug_name,batch_no,expiry,qty,unit\nOxytocin 5IU Inj,,01/2027,5,ampoule\nMetformin 500mg,B-MET-H2-020,06/2027,10,strip",
+      "expected_items": [
+        {"drug_code": "OXYTOCIN", "qty": 5, "unit": "ampoule", "batch_no": null, "expiry": "2027-01-01"},
+        {"drug_code": "METF", "qty": 100, "unit": "tablet", "batch_no": "B-MET-H2-020", "expiry": "2027-06-01", "note": "strip->tablet x10"}
+      ]
+    },
+
+    {
+      "id": "ext-021",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-01",
+      "raw_input": "ನಮಸ್ಕಾರ ಸರ್, ಇವತ್ತಿನ ಸ್ಟಾಕ್ ರಿಪೋರ್ಟ್:\nಪ್ಯಾರಸಿಟಮಾಲ್ 500mg - 200 tablets, batch B-PCM-H3-021, exp 15/12\nಇನ್ಸುಲಿನ್ 40IU - 8 vials, batch B-INS-H3-021, exp 2027-01-31\nORS - 50 sachets, exp 03/2027",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 200, "unit": "tablet", "batch_no": "B-PCM-H3-021", "expiry": "2026-12-15"},
+        {"drug_code": "INSULIN", "qty": 8, "unit": "vial", "batch_no": "B-INS-H3-021", "expiry": "2027-01-31"},
+        {"drug_code": "ORS", "qty": 50, "unit": "sachet", "batch_no": null, "expiry": "2027-03-01"}
+      ]
+    },
+    {
+      "id": "ext-022",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-03",
+      "raw_input": "ಶುಭ ಮಧ್ಯಾಹ್ನ! H3 ಸ್ಟಾಕ್ ಅಪ್ಡೇಟ್:\nಅಮಾಕ್ಸಿಸಿಲಿನ್ - 150 caps, B-AMX-H3-022, 02/2027\nIron Folic Acid - 1000 tabs, B-IFA-H3-022, 05/2027\nಒಆರ್ಎಸ್ - 30 ಪ್ಯಾಕೆಟ್, B-ORS-H3-022, exp 01/2027",
+      "expected_items": [
+        {"drug_code": "AMOX", "qty": 150, "unit": "capsule", "batch_no": "B-AMX-H3-022", "expiry": "2027-02-01"},
+        {"drug_code": "IFA", "qty": 1000, "unit": "tablet", "batch_no": "B-IFA-H3-022", "expiry": "2027-05-01"},
+        {"drug_code": "ORS", "qty": 30, "unit": "sachet", "batch_no": "B-ORS-H3-022", "expiry": "2027-01-01"}
+      ]
+    },
+    {
+      "id": "ext-023",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-05",
+      "raw_input": "ಸರ್ ಈ ವಾರದ ಸ್ಟಾಕ್:\nಪ್ಯಾರಸಿಟಮಾಲ್ - 80 ಟ್ಯಾಬ್ಲೆಟ್, exp 20/11\nZinc 20mg - 120 tablets, B-ZNC-H3-023, exp 2027-08-01\nAlbendazole 400mg - 300 tabs, B-ALB-H3-023, 07/2027\nAmlodipine - 100 tablets, exp 2027-10-01",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 80, "unit": "tablet", "batch_no": null, "expiry": "2026-11-20"},
+        {"drug_code": "ZINC", "qty": 120, "unit": "tablet", "batch_no": "B-ZNC-H3-023", "expiry": "2027-08-01"},
+        {"drug_code": "ALBENDAZOLE", "qty": 300, "unit": "tablet", "batch_no": "B-ALB-H3-023", "expiry": "2027-07-01"},
+        {"drug_code": "AMLODIPINE", "qty": 100, "unit": "tablet", "batch_no": null, "expiry": "2027-10-01"}
+      ]
+    },
+    {
+      "id": "ext-024",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-07",
+      "raw_input": "ನಮಸ್ಕಾರ, H3 ಔಷಧಿ ಸ್ಟಾಕ್:\nMetformin 500 - 250 tabs, B-MET-H3-024, 04/2027\nRL 500ml - 35 bottles, B-RL-H3-024, exp 2027-09-15\nCeftriaxone inj - 20 ವಯಲ್ಸ್, exp 2027-03-01",
+      "expected_items": [
+        {"drug_code": "METF", "qty": 250, "unit": "tablet", "batch_no": "B-MET-H3-024", "expiry": "2027-04-01"},
+        {"drug_code": "RL", "qty": 35, "unit": "bottle", "batch_no": "B-RL-H3-024", "expiry": "2027-09-15"},
+        {"drug_code": "CEFTRIAXONE", "qty": 20, "unit": "vial", "batch_no": null, "expiry": "2027-03-01"}
+      ]
+    },
+    {
+      "id": "ext-025",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-09",
+      "raw_input": "ಹಲೋ ಸರ್! ಇಂದಿನ ರಿಪೋರ್ಟ್:\nಇನ್ಸುಲಿನ್ - 15 ವಯಲ್ಸ್, batch B-INS-H3-025, exp 2027-02-15\nOxytocin 5IU - 6 ampoules, B-OXY-H3-025, exp 2026-12-31\nDesloratadine 5mg - 50 tablets",
+      "expected_items": [
+        {"drug_code": "INSULIN", "qty": 15, "unit": "vial", "batch_no": "B-INS-H3-025", "expiry": "2027-02-15"},
+        {"drug_code": "OXYTOCIN", "qty": 6, "unit": "ampoule", "batch_no": "B-OXY-H3-025", "expiry": "2026-12-31"},
+        {"drug_code": "UNKNOWN", "qty": 50, "unit": "tablet", "batch_no": null, "expiry": null, "note": "Desloratadine not in drug master"}
+      ]
+    },
+    {
+      "id": "ext-026",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-11",
+      "raw_input": "ಸರ್ ಸ್ಟಾಕ್ ಅಪ್ಡೇಟ್ ಕಳುಹಿಸುತ್ತಿದ್ದೇನೆ:\nಪ್ಯಾರಸಿಟಮಾಲ್ - 500 tabs, B-PCM-H3-026, exp 2027-01-20\nIFA tablets - 800, B-IFA-H3-026, 06/2027",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 500, "unit": "tablet", "batch_no": "B-PCM-H3-026", "expiry": "2027-01-20"},
+        {"drug_code": "IFA", "qty": 800, "unit": "tablet", "batch_no": "B-IFA-H3-026", "expiry": "2027-06-01"}
+      ]
+    },
+    {
+      "id": "ext-027",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-13",
+      "raw_input": "ಶುಭ ಬೆಳಿಗ್ಗೆ! ಇಂದಿನ ಸ್ಟಾಕ್ ಮಾಹಿತಿ:\nಅಮಾಕ್ಸಿಸಿಲಿನ್ 250 - 400 capsules, B-AMX-H3-027, exp 2027-03-15\nಒಆರ್ಎಸ್ - 200 sachets, B-ORS-H3-027, 04/2027\nZinc dispersible - 150 ಟ್ಯಾಬ್ಲೆಟ್, B-ZNC-H3-027, 08/2027\nRL - 20 ಬಾಟಲ್, B-RL-H3-027, 2027-11-01",
+      "expected_items": [
+        {"drug_code": "AMOX", "qty": 400, "unit": "capsule", "batch_no": "B-AMX-H3-027", "expiry": "2027-03-15"},
+        {"drug_code": "ORS", "qty": 200, "unit": "sachet", "batch_no": "B-ORS-H3-027", "expiry": "2027-04-01"},
+        {"drug_code": "ZINC", "qty": 150, "unit": "tablet", "batch_no": "B-ZNC-H3-027", "expiry": "2027-08-01"},
+        {"drug_code": "RL", "qty": 20, "unit": "bottle", "batch_no": "B-RL-H3-027", "expiry": "2027-11-01"}
+      ]
+    },
+    {
+      "id": "ext-028",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-15",
+      "raw_input": "ಸರ್, ಔಷಧಿ stock ಕಡಿಮೆ ಇದೆ. ಬೇಗ ಸರಬರಾಜು ಮಾಡಿ:\nಇನ್ಸುಲಿನ್ - 2 ವಯಲ್ಸ್ ಮಾತ್ರ ಇದೆ! B-INS-H3-028, exp 25/11\nಪ್ಯಾರಸಿಟಮಾಲ್ - 30 ಟ್ಯಾಬ್ಲೆಟ್, B-PCM-H3-028, exp 2026-12-31\nORS sachets - 10 only, exp 2026-12-15",
+      "expected_items": [
+        {"drug_code": "INSULIN", "qty": 2, "unit": "vial", "batch_no": "B-INS-H3-028", "expiry": "2026-11-25"},
+        {"drug_code": "PCM", "qty": 30, "unit": "tablet", "batch_no": "B-PCM-H3-028", "expiry": "2026-12-31"},
+        {"drug_code": "ORS", "qty": 10, "unit": "sachet", "batch_no": null, "expiry": "2026-12-15"}
+      ]
+    },
+    {
+      "id": "ext-029",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-17",
+      "raw_input": "ನಮಸ್ಕಾರ ಮೇಡಂ, stock report:\nAmlodipine 5 - 180 tabs, B-AML-H3-029, 09/2027\nMetf 500 - 300 ಟ್ಯಾಬ್, B-MET-H3-029, 05/2027\nAlbendazole - 200 ಮಾತ್ರೆ, B-ALB-H3-029, exp 2027-06-30",
+      "expected_items": [
+        {"drug_code": "AMLODIPINE", "qty": 180, "unit": "tablet", "batch_no": "B-AML-H3-029", "expiry": "2027-09-01"},
+        {"drug_code": "METF", "qty": 300, "unit": "tablet", "batch_no": "B-MET-H3-029", "expiry": "2027-05-01"},
+        {"drug_code": "ALBENDAZOLE", "qty": 200, "unit": "tablet", "batch_no": "B-ALB-H3-029", "expiry": "2027-06-30"}
+      ]
+    },
+    {
+      "id": "ext-030",
+      "facility_code": "H3",
+      "style": "chat_kn",
+      "report_date": "2026-11-19",
+      "raw_input": "ಹಲೋ, H3 stock update:\nCeftriaxone 1g - 10 vials, B-CEF-H3-030, exp 2027-04-15\nOxytocin inj - 4 amps, exp 2027-01-10\nಪ್ಯಾರಸಿಟಮಾಲ್ - 600 tabs, B-PCM-H3-030, 2027-02-28",
+      "expected_items": [
+        {"drug_code": "CEFTRIAXONE", "qty": 10, "unit": "vial", "batch_no": "B-CEF-H3-030", "expiry": "2027-04-15"},
+        {"drug_code": "OXYTOCIN", "qty": 4, "unit": "ampoule", "batch_no": null, "expiry": "2027-01-10"},
+        {"drug_code": "PCM", "qty": 600, "unit": "tablet", "batch_no": "B-PCM-H3-030", "expiry": "2027-02-28"}
+      ]
+    },
+
+    {
+      "id": "ext-031",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-01",
+      "raw_input": "H4 stock register 1/11/2026\nparacetmol 500 - 300 tabs, batch B-PCM-H4-031, exp 15/12\ninzulin 40iu - 50 vials, B-INS-H4-031, exp Jan 2027\nORS sachets - 100, exp 2027-03-01",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 300, "unit": "tablet", "batch_no": "B-PCM-H4-031", "expiry": "2026-12-15"},
+        {"drug_code": "INSULIN", "qty": 50, "unit": "vial", "batch_no": "B-INS-H4-031", "expiry": "2027-01-01"},
+        {"drug_code": "ORS", "qty": 100, "unit": "sachet", "batch_no": null, "expiry": "2027-03-01"}
+      ]
+    },
+    {
+      "id": "ext-032",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-03",
+      "raw_input": "Stock as of 3-Nov-2026:\namoxy 250mg capsules - 200, batch B-AMX-H4-032, expiry 02/2027\nmetformine tabs - 450, B-MET-H4-032, exp 2027-04-15\namlodipne 5mg - 150 tablets, B-AML-H4-032, exp 2027-09-01",
+      "expected_items": [
+        {"drug_code": "AMOX", "qty": 200, "unit": "capsule", "batch_no": "B-AMX-H4-032", "expiry": "2027-02-01"},
+        {"drug_code": "METF", "qty": 450, "unit": "tablet", "batch_no": "B-MET-H4-032", "expiry": "2027-04-15"},
+        {"drug_code": "AMLODIPINE", "qty": 150, "unit": "tablet", "batch_no": "B-AML-H4-032", "expiry": "2027-09-01"}
+      ]
+    },
+    {
+      "id": "ext-033",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-05",
+      "raw_input": "PHC stock count 5/11\nIFA Iron folic acid tabs: 1500, batch B-IFA-H4-033, expiry 05/2027\norsachet ORS - 80, exp March 2027\nRL ringer lactate - 25 bottles, B-RL-H4-033, 2027-08-01\nCeftriaxon injection 1gm - 18 vials, exp 2027-04",
+      "expected_items": [
+        {"drug_code": "IFA", "qty": 1500, "unit": "tablet", "batch_no": "B-IFA-H4-033", "expiry": "2027-05-01"},
+        {"drug_code": "ORS", "qty": 80, "unit": "sachet", "batch_no": null, "expiry": "2027-03-01"},
+        {"drug_code": "RL", "qty": 25, "unit": "bottle", "batch_no": "B-RL-H4-033", "expiry": "2027-08-01"},
+        {"drug_code": "CEFTRIAXONE", "qty": 18, "unit": "vial", "batch_no": null, "expiry": "2027-04-01"}
+      ]
+    },
+    {
+      "id": "ext-034",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-07",
+      "raw_input": "Stock list H4 dt 07-11-26\nparacetmol 500mg tablets = 100, B-PCM-H4-034, exp 2026-12-20\nZinc dispersable 20mg = 250, B-ZNC-H4-034, exp July 2027\nAlbendazol tabs 400mg = 180, exp 2027-06-15",
+      "expected_items": [
+        {"drug_code": "PCM", "qty": 100, "unit": "tablet", "batch_no": "B-PCM-H4-034", "expiry": "2026-12-20"},
+        {"drug_code": "ZINC", "qty": 250, "unit": "tablet", "batch_no": "B-ZNC-H4-034", "expiry": "2027-07-01"},
+        {"drug_code": "ALBENDAZOLE", "qty": 180, "unit": "tablet", "batch_no": null, "expiry": "2027-06-15"}
+      ]
+    },
+    {
+      "id": "ext-035",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-09",
+      "raw_input": "9-11-2026 stock update\ninzulin 40iu/ml vials: 3 only!! B-INS-H4-035, exp 19/11\namoxy caps: 500, B-AMX-H4-035, expiry 2027-02-28\nDiclofenac sodium 50mg: 200 tabs, B-DIC-H4-035, exp 2027-05-01\nparacetmol: 50, exp 30/11",
+      "expected_items": [
+        {"drug_code": "INSULIN", "qty": 3, "unit": "vial", "batch_no": "B-INS-H4-035", "expiry": "2026-11-19"},
+        {"drug_code": "AMOX", "qty": 500, "unit": "capsule", "batch_no": "B-AMX-H4-035", "expiry": "2027-02-28"},
+        {"drug_code": "UNKNOWN", "qty": 200, "unit": "tablet", "batch_no": "B-DIC-H4-035", "expiry": "2027-05-01", "note": "Diclofenac not in drug master"},
+        {"drug_code": "PCM", "qty": 50, "unit": "tablet", "batch_no": null, "expiry": "2026-11-30"}
+      ]
+    },
+    {
+      "id": "ext-036",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-11",
+      "raw_input": "H4 medicine list 11th November\nmetformine 500mg - 600 tabs, batch B-MET-H4-036, exp 2027-03-31\nOxytocin injection - 5 amp, exp 2027-01-10\norsachet - 40 packets, B-ORS-H4-036, expiry Feb 2027",
+      "expected_items": [
+        {"drug_code": "METF", "qty": 600, "unit": "tablet", "batch_no": "B-MET-H4-036", "expiry": "2027-03-31"},
+        {"drug_code": "OXYTOCIN", "qty": 5, "unit": "ampoule", "batch_no": null, "expiry": "2027-01-10"},
+        {"drug_code": "ORS", "qty": 40, "unit": "sachet", "batch_no": "B-ORS-H4-036", "expiry": "2027-02-01"}
+      ]
+    },
+    {
+      "id": "ext-037",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-13",
+      "raw_input": "13/11/26 stock report\namlodipne tabs 5mg: 200, B-AML-H4-037, exp 2027-10-01\nparacetmol 500 mg: 400, B-PCM-H4-037, exp 01/2027\ninzulin human 40iu: 10000, B-INS-H4-037, exp 1999-01-01\nIFA tabs: 900, B-IFA-H4-037, exp 2027-05-20",
+      "expected_items": [
+        {"drug_code": "AMLODIPINE", "qty": 200, "unit": "tablet", "batch_no": "B-AML-H4-037", "expiry": "2027-10-01"},
+        {"drug_code": "PCM", "qty": 400, "unit": "tablet", "batch_no": "B-PCM-H4-037", "expiry": "2027-01-01"},
+        {"drug_code": "INSULIN", "qty": 10000, "unit": "vial", "batch_no": "B-INS-H4-037", "expiry": "1999-01-01", "note": "bad_data scenario injection: qty spike + past expiry"},
+        {"drug_code": "IFA", "qty": 900, "unit": "tablet", "batch_no": "B-IFA-H4-037", "expiry": "2027-05-20"}
+      ]
+    },
+    {
+      "id": "ext-038",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-15",
+      "raw_input": "Stock 15-Nov-2026 PHC H4\nRL ringers lactate 500ml = 15 bottles, exp 2027-09-01\namoxy 250 caps = 120, batch B-AMX-H4-038, exp 2027-03-15\nZink tablets = 80, B-ZNC-H4-038, exp Aug 2027",
+      "expected_items": [
+        {"drug_code": "RL", "qty": 15, "unit": "bottle", "batch_no": null, "expiry": "2027-09-01"},
+        {"drug_code": "AMOX", "qty": 120, "unit": "capsule", "batch_no": "B-AMX-H4-038", "expiry": "2027-03-15"},
+        {"drug_code": "ZINC", "qty": 80, "unit": "tablet", "batch_no": "B-ZNC-H4-038", "expiry": "2027-08-01"}
+      ]
+    },
+    {
+      "id": "ext-039",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-17",
+      "raw_input": "17 Nov stock\nCeftriaxon 1g inj vial: 12, B-CEF-H4-039, exp 2027-04-01\nAlbendazol 400: 350 tabs, exp June 2027\nparacetmol: 700, B-PCM-H4-039, exp 2027-02-15\nmetformine: 250 tabs, exp 2027-05",
+      "expected_items": [
+        {"drug_code": "CEFTRIAXONE", "qty": 12, "unit": "vial", "batch_no": "B-CEF-H4-039", "expiry": "2027-04-01"},
+        {"drug_code": "ALBENDAZOLE", "qty": 350, "unit": "tablet", "batch_no": null, "expiry": "2027-06-01"},
+        {"drug_code": "PCM", "qty": 700, "unit": "tablet", "batch_no": "B-PCM-H4-039", "expiry": "2027-02-15"},
+        {"drug_code": "METF", "qty": 250, "unit": "tablet", "batch_no": null, "expiry": "2027-05-01"}
+      ]
+    },
+    {
+      "id": "ext-040",
+      "facility_code": "H4",
+      "style": "text_messy",
+      "report_date": "2026-11-19",
+      "raw_input": "19/11/26 register\ninzulin: 8 vials, B-INS-H4-040, exp 2027-01-31\namlodipne: 300 tabs, B-AML-H4-040, exp 2027-11-01\norsachet packets: 60, exp 2027-02-28",
+      "expected_items": [
+        {"drug_code": "INSULIN", "qty": 8, "unit": "vial", "batch_no": "B-INS-H4-040", "expiry": "2027-01-31"},
+        {"drug_code": "AMLODIPINE", "qty": 300, "unit": "tablet", "batch_no": "B-AML-H4-040", "expiry": "2027-11-01"},
+        {"drug_code": "ORS", "qty": 60, "unit": "sachet", "batch_no": null, "expiry": "2027-02-28"}
+      ]
+    }
+  ]
+}

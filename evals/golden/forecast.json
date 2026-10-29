@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "description": "Golden forecast evaluation set for MedBalance-Q — baseline vs adjusted MAPE comparison",
+  "pairs": [
+    {
+      "facility_id": "H1", "drug_code": "PCM",
+      "actual_rate": 8.2,
+      "baseline_rate": 8.0,
+      "adjusted_rate": 9.6,
+      "context_multiplier": 1.2,
+      "signals": ["season_winter"]
+    },
+    {
+      "facility_id": "H1", "drug_code": "INSULIN",
+      "actual_rate": 0.5,
+      "baseline_rate": 0.5,
+      "adjusted_rate": 0.5,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H1", "drug_code": "AMOX",
+      "actual_rate": 4.5,
+      "baseline_rate": 4.2,
+      "adjusted_rate": 4.83,
+      "context_multiplier": 1.15,
+      "signals": ["season_winter"]
+    },
+    {
+      "facility_id": "H1", "drug_code": "ORS",
+      "actual_rate": 3.0,
+      "baseline_rate": 3.1,
+      "adjusted_rate": 3.1,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H2", "drug_code": "PCM",
+      "actual_rate": 6.5,
+      "baseline_rate": 6.0,
+      "adjusted_rate": 6.9,
+      "context_multiplier": 1.15,
+      "signals": ["season_winter"]
+    },
+    {
+      "facility_id": "H2", "drug_code": "INSULIN",
+      "actual_rate": 0.5,
+      "baseline_rate": 0.5,
+      "adjusted_rate": 0.5,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H2", "drug_code": "METF",
+      "actual_rate": 5.0,
+      "baseline_rate": 4.8,
+      "adjusted_rate": 4.8,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H3", "drug_code": "AMOX",
+      "actual_rate": 5.2,
+      "baseline_rate": 4.0,
+      "adjusted_rate": 4.6,
+      "context_multiplier": 1.15,
+      "signals": ["season_winter"]
+    },
+    {
+      "facility_id": "H3", "drug_code": "ORS",
+      "actual_rate": 14.0,
+      "baseline_rate": 5.0,
+      "adjusted_rate": 12.5,
+      "context_multiplier": 2.5,
+      "signals": ["dengue_outbreak"]
+    },
+    {
+      "facility_id": "H3", "drug_code": "PCM",
+      "actual_rate": 7.5,
+      "baseline_rate": 5.5,
+      "adjusted_rate": 6.6,
+      "context_multiplier": 1.2,
+      "signals": ["season_dengue"]
+    },
+    {
+      "facility_id": "H4", "drug_code": "PCM",
+      "actual_rate": 4.0,
+      "baseline_rate": 4.0,
+      "adjusted_rate": 4.6,
+      "context_multiplier": 1.15,
+      "signals": ["season_winter"]
+    },
+    {
+      "facility_id": "H4", "drug_code": "IFA",
+      "actual_rate": 2.0,
+      "baseline_rate": 2.1,
+      "adjusted_rate": 2.1,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H1", "drug_code": "AMLODIPINE",
+      "actual_rate": 3.0,
+      "baseline_rate": 2.8,
+      "adjusted_rate": 2.8,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H2", "drug_code": "IFA",
+      "actual_rate": 3.5,
+      "baseline_rate": 3.2,
+      "adjusted_rate": 3.2,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H3", "drug_code": "RL",
+      "actual_rate": 2.5,
+      "baseline_rate": 2.3,
+      "adjusted_rate": 2.3,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H1", "drug_code": "OXYTOCIN",
+      "actual_rate": 1.2,
+      "baseline_rate": 1.0,
+      "adjusted_rate": 1.0,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H2", "drug_code": "CEFTRIAXONE",
+      "actual_rate": 0.8,
+      "baseline_rate": 0.7,
+      "adjusted_rate": 0.7,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H3", "drug_code": "ZINC",
+      "actual_rate": 4.0,
+      "baseline_rate": 3.5,
+      "adjusted_rate": 3.5,
+      "context_multiplier": 1.0,
+      "signals": []
+    },
+    {
+      "facility_id": "H4", "drug_code": "AMOX",
+      "actual_rate": 3.8,
+      "baseline_rate": 3.5,
+      "adjusted_rate": 4.03,
+      "context_multiplier": 1.15,
+      "signals": ["season_winter"]
+    },
+    {
+      "facility_id": "H4", "drug_code": "ORS",
+      "actual_rate": 2.0,
+      "baseline_rate": 1.8,
+      "adjusted_rate": 1.8,
+      "context_multiplier": 1.0,
+      "signals": []
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "timestamp": "20261029T222725",
+  "n_vars": 146,
+  "offset": 106.5,
+  "q_hash": "01a19c80b8cc",
+  "attempts": [
+    {
+      "tier": "greedy-descent",
+      "time_ms": 972.04,
+      "n_vars": 146,
+      "samples_returned": 1,
+      "energy": 71.7222133710766,
+      "error": null
+    }
+  ],
+  "winner": {
+    "tier": "greedy-descent",
+    "energy": 71.7222133710766,
+    "time_ms": 972.04,
+    "samples_count": 1
+  }
+}

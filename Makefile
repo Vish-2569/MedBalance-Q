@@ -1,4 +1,4 @@
-.PHONY: up down logs ps build test fmt lint seed eval demo warm-cache evidence check-env
+.PHONY: up down logs ps build test fmt lint seed eval eval-ai demo warm-cache evidence check-env
 
 up:
 	docker compose --profile full up -d
@@ -29,13 +29,19 @@ seed:
 	python -I data/seed/generate.py --seed 42
 
 eval:
-	@echo "not implemented yet (P03)"
+	cd services/optimizer && uv run python -m app.eval.replay --seeds 20 --days 28 --policies A,B,C,D,E --solver local
 
 demo:
 	@echo "not implemented yet (P04)"
 
+eval-ai:
+	python -I evals/run_evals.py
+
+eval-ai-live:
+	python -I evals/run_evals.py --live
+
 warm-cache:
-	@echo "not implemented yet (P02)"
+	python -I scripts/warm_cache.py
 
 evidence:
 	@echo "not implemented yet (P03)"

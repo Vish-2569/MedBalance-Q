@@ -305,7 +305,7 @@ def maxcut_chain(
 
         if result.error is None and result.cut_value >= 0:
             ratio = result.approx_ratio if not math.isnan(result.approx_ratio) else 0.0
-            print(f"[QPI AI QCLOUD] ✓ Tier: {solver.tier_name}")
+            print(f"[QPI AI QCLOUD] OK Tier: {solver.tier_name}")
             print(f"[QPI AI QCLOUD] Best cut value: {result.cut_value}, Approx ratio: {ratio:.3f}")
             log.info("maxcut_tier_succeeded", tier=solver.tier_name, cut_value=result.cut_value, approx_ratio=round(ratio, 4))
             best = result
@@ -314,7 +314,7 @@ def maxcut_chain(
             _write_maxcut_evidence(G, attempts, best)
             return best
 
-        print(f"[QPI AI QCLOUD] ✗ {solver.tier_name} skipped — {result.error}")
+        print(f"[QPI AI QCLOUD] SKIP {solver.tier_name} skipped - {result.error}")
         log.info("maxcut_tier_failed", tier=solver.tier_name, error=result.error)
 
     if best is None:

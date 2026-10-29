@@ -1,0 +1,607 @@
+{
+  "timestamp": "20261030_033932",
+  "n_seeds": 3,
+  "n_days": 14,
+  "solver_override": "local",
+  "total_time_s": 339.9,
+  "aggregated": [
+    {
+      "policy": "A",
+      "n_seeds": 3,
+      "stockout_days": {
+        "mean": 311.3,
+        "std": 1.5,
+        "ci95_lo": 309.6,
+        "ci95_hi": 313.1
+      },
+      "stockout_ven_weighted_mean": 802.3,
+      "unmet_demand_mean": 1099,
+      "expired_units_mean": 0,
+      "expired_inr_mean": 0.0,
+      "waste_moved_mean": 0,
+      "violations_mean": 0,
+      "reserve_breaches_mean": 57.3,
+      "trips_mean": 0,
+      "km_mean": 0.0,
+      "cost_inr_mean": 0.0,
+      "avg_solve_ms": 0,
+      "solver_tiers": []
+    },
+    {
+      "policy": "B",
+      "n_seeds": 3,
+      "stockout_days": {
+        "mean": 57.3,
+        "std": 5.7,
+        "ci95_lo": 50.9,
+        "ci95_hi": 63.8
+      },
+      "stockout_ven_weighted_mean": 158.0,
+      "unmet_demand_mean": 138.7,
+      "expired_units_mean": 0,
+      "expired_inr_mean": 0.0,
+      "waste_moved_mean": 4620.7,
+      "violations_mean": 0,
+      "reserve_breaches_mean": 10.3,
+      "trips_mean": 146.7,
+      "km_mean": 3143.6,
+      "cost_inr_mean": 29260.2,
+      "avg_solve_ms": 0.6,
+      "solver_tiers": [
+        "greedy-phone-call"
+      ]
+    },
+    {
+      "policy": "C",
+      "n_seeds": 3,
+      "stockout_days": {
+        "mean": 68.3,
+        "std": 4.6,
+        "ci95_lo": 63.1,
+        "ci95_hi": 73.6
+      },
+      "stockout_ven_weighted_mean": 191.0,
+      "unmet_demand_mean": 149,
+      "expired_units_mean": 0,
+      "expired_inr_mean": 0.0,
+      "waste_moved_mean": 4591.7,
+      "violations_mean": 0,
+      "reserve_breaches_mean": 10.3,
+      "trips_mean": 143,
+      "km_mean": 3119.7,
+      "cost_inr_mean": 29068.98,
+      "avg_solve_ms": 1.1,
+      "solver_tiers": [
+        "greedy-f4"
+      ]
+    },
+    {
+      "policy": "D",
+      "n_seeds": 3,
+      "stockout_days": {
+        "mean": 156.3,
+        "std": 6.4,
+        "ci95_lo": 149.1,
+        "ci95_hi": 163.5
+      },
+      "stockout_ven_weighted_mean": 391.0,
+      "unmet_demand_mean": 561,
+      "expired_units_mean": 0,
+      "expired_inr_mean": 0.0,
+      "waste_moved_mean": 19522,
+      "violations_mean": 1,
+      "reserve_breaches_mean": 125.7,
+      "trips_mean": 138.3,
+      "km_mean": 4616.4,
+      "cost_inr_mean": 45056.76,
+      "avg_solve_ms": 8029.4,
+      "solver_tiers": [
+        "greedy-descent"
+      ]
+    }
+  ],
+  "ablation": [
+    {
+      "policy": "D-noF4",
+      "n_seeds": 3,
+      "stockout_days": {
+        "mean": 155.3,
+        "std": 5.5,
+        "ci95_lo": 149.1,
+        "ci95_hi": 161.6
+      },
+      "stockout_ven_weighted_mean": 389.0,
+      "unmet_demand_mean": 551,
+      "expired_units_mean": 0,
+      "expired_inr_mean": 0.0,
+      "waste_moved_mean": 17545.7,
+      "violations_mean": 0.67,
+      "reserve_breaches_mean": 125.7,
+      "trips_mean": 138.7,
+      "km_mean": 4569.2,
+      "cost_inr_mean": 44924.95,
+      "avg_solve_ms": 8165.6,
+      "solver_tiers": [
+        "greedy-descent"
+      ]
+    },
+    {
+      "policy": "D-noForecast",
+      "n_seeds": 3,
+      "stockout_days": {
+        "mean": 156.3,
+        "std": 6.4,
+        "ci95_lo": 149.1,
+        "ci95_hi": 163.5
+      },
+      "stockout_ven_weighted_mean": 391.0,
+      "unmet_demand_mean": 561,
+      "expired_units_mean": 0,
+      "expired_inr_mean": 0.0,
+      "waste_moved_mean": 19522,
+      "violations_mean": 1,
+      "reserve_breaches_mean": 125.7,
+      "trips_mean": 138.3,
+      "km_mean": 4616.4,
+      "cost_inr_mean": 45056.76,
+      "avg_solve_ms": 9096.8,
+      "solver_tiers": [
+        "greedy-descent"
+      ]
+    },
+    {
+      "policy": "D-noGamma",
+      "n_seeds": 3,
+      "stockout_days": {
+        "mean": 154,
+        "std": 4.4,
+        "ci95_lo": 149.1,
+        "ci95_hi": 158.9
+      },
+      "stockout_ven_weighted_mean": 384.0,
+      "unmet_demand_mean": 554.3,
+      "expired_units_mean": 0,
+      "expired_inr_mean": 0.0,
+      "waste_moved_mean": 14912.3,
+      "violations_mean": 0.67,
+      "reserve_breaches_mean": 121.3,
+      "trips_mean": 130.7,
+      "km_mean": 4183.8,
+      "cost_inr_mean": 42503.1,
+      "avg_solve_ms": 2949.6,
+      "solver_tiers": [
+        "greedy-descent"
+      ]
+    }
+  ],
+  "per_seed": {
+    "A": [
+      {
+        "seed": 1,
+        "policy": "A",
+        "days": 14,
+        "stockout_days": 311,
+        "stockout_days_ven_weighted": 801.0,
+        "unmet_demand": 1085,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 0,
+        "violations": 0,
+        "reserve_breaches": 51,
+        "trips": 0,
+        "km": 0.0,
+        "cost_inr": 0.0,
+        "avg_solve_time_ms": 0,
+        "solver_tiers": []
+      },
+      {
+        "seed": 2,
+        "policy": "A",
+        "days": 14,
+        "stockout_days": 313,
+        "stockout_days_ven_weighted": 807.0,
+        "unmet_demand": 1094,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 0,
+        "violations": 0,
+        "reserve_breaches": 61,
+        "trips": 0,
+        "km": 0.0,
+        "cost_inr": 0.0,
+        "avg_solve_time_ms": 0,
+        "solver_tiers": []
+      },
+      {
+        "seed": 3,
+        "policy": "A",
+        "days": 14,
+        "stockout_days": 310,
+        "stockout_days_ven_weighted": 799.0,
+        "unmet_demand": 1118,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 0,
+        "violations": 0,
+        "reserve_breaches": 60,
+        "trips": 0,
+        "km": 0.0,
+        "cost_inr": 0.0,
+        "avg_solve_time_ms": 0,
+        "solver_tiers": []
+      }
+    ],
+    "B": [
+      {
+        "seed": 1,
+        "policy": "B",
+        "days": 14,
+        "stockout_days": 62,
+        "stockout_days_ven_weighted": 172.0,
+        "unmet_demand": 137,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 4560,
+        "violations": 0,
+        "reserve_breaches": 10,
+        "trips": 144,
+        "km": 3095.5,
+        "cost_inr": 28772.34,
+        "avg_solve_time_ms": 0.6,
+        "solver_tiers": [
+          "greedy-phone-call"
+        ]
+      },
+      {
+        "seed": 2,
+        "policy": "B",
+        "days": 14,
+        "stockout_days": 51,
+        "stockout_days_ven_weighted": 139.0,
+        "unmet_demand": 138,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 4680,
+        "violations": 0,
+        "reserve_breaches": 12,
+        "trips": 149,
+        "km": 3185.4,
+        "cost_inr": 29669.21,
+        "avg_solve_time_ms": 0.6,
+        "solver_tiers": [
+          "greedy-phone-call"
+        ]
+      },
+      {
+        "seed": 3,
+        "policy": "B",
+        "days": 14,
+        "stockout_days": 59,
+        "stockout_days_ven_weighted": 163.0,
+        "unmet_demand": 141,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 4622,
+        "violations": 0,
+        "reserve_breaches": 9,
+        "trips": 147,
+        "km": 3149.9,
+        "cost_inr": 29339.04,
+        "avg_solve_time_ms": 0.6,
+        "solver_tiers": [
+          "greedy-phone-call"
+        ]
+      }
+    ],
+    "C": [
+      {
+        "seed": 1,
+        "policy": "C",
+        "days": 14,
+        "stockout_days": 71,
+        "stockout_days_ven_weighted": 199.0,
+        "unmet_demand": 146,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 4533,
+        "violations": 0,
+        "reserve_breaches": 10,
+        "trips": 141,
+        "km": 3075.9,
+        "cost_inr": 28615.89,
+        "avg_solve_time_ms": 0.9,
+        "solver_tiers": [
+          "greedy-f4"
+        ]
+      },
+      {
+        "seed": 2,
+        "policy": "C",
+        "days": 14,
+        "stockout_days": 63,
+        "stockout_days_ven_weighted": 175.0,
+        "unmet_demand": 149,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 4651,
+        "violations": 0,
+        "reserve_breaches": 12,
+        "trips": 145,
+        "km": 3159.4,
+        "cost_inr": 29460.61,
+        "avg_solve_time_ms": 0.9,
+        "solver_tiers": [
+          "greedy-f4"
+        ]
+      },
+      {
+        "seed": 3,
+        "policy": "C",
+        "days": 14,
+        "stockout_days": 71,
+        "stockout_days_ven_weighted": 199.0,
+        "unmet_demand": 152,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 4591,
+        "violations": 0,
+        "reserve_breaches": 9,
+        "trips": 143,
+        "km": 3123.8,
+        "cost_inr": 29130.44,
+        "avg_solve_time_ms": 1.3,
+        "solver_tiers": [
+          "greedy-f4"
+        ]
+      }
+    ],
+    "D": [
+      {
+        "seed": 1,
+        "policy": "D",
+        "days": 14,
+        "stockout_days": 149,
+        "stockout_days_ven_weighted": 367.0,
+        "unmet_demand": 545,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 22713,
+        "violations": 3,
+        "reserve_breaches": 130,
+        "trips": 140,
+        "km": 4685.8,
+        "cost_inr": 45499.61,
+        "avg_solve_time_ms": 8315.4,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      },
+      {
+        "seed": 2,
+        "policy": "D",
+        "days": 14,
+        "stockout_days": 160,
+        "stockout_days_ven_weighted": 402.0,
+        "unmet_demand": 590,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 18084,
+        "violations": 0,
+        "reserve_breaches": 129,
+        "trips": 143,
+        "km": 4838.5,
+        "cost_inr": 47110.64,
+        "avg_solve_time_ms": 7977.5,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      },
+      {
+        "seed": 3,
+        "policy": "D",
+        "days": 14,
+        "stockout_days": 160,
+        "stockout_days_ven_weighted": 404.0,
+        "unmet_demand": 548,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 17769,
+        "violations": 0,
+        "reserve_breaches": 118,
+        "trips": 132,
+        "km": 4324.8,
+        "cost_inr": 42560.04,
+        "avg_solve_time_ms": 7795.2,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      }
+    ],
+    "D-noF4": [
+      {
+        "seed": 1,
+        "policy": "D-noF4",
+        "days": 14,
+        "stockout_days": 149,
+        "stockout_days_ven_weighted": 367.0,
+        "unmet_demand": 545,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 16123,
+        "violations": 2,
+        "reserve_breaches": 129,
+        "trips": 142,
+        "km": 4622.6,
+        "cost_inr": 45684.46,
+        "avg_solve_time_ms": 7975.9,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      },
+      {
+        "seed": 2,
+        "policy": "D-noF4",
+        "days": 14,
+        "stockout_days": 159,
+        "stockout_days_ven_weighted": 400.0,
+        "unmet_demand": 588,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 18259,
+        "violations": 0,
+        "reserve_breaches": 132,
+        "trips": 142,
+        "km": 4789.4,
+        "cost_inr": 46717.85,
+        "avg_solve_time_ms": 8857.1,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      },
+      {
+        "seed": 3,
+        "policy": "D-noF4",
+        "days": 14,
+        "stockout_days": 158,
+        "stockout_days_ven_weighted": 400.0,
+        "unmet_demand": 520,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 18255,
+        "violations": 0,
+        "reserve_breaches": 116,
+        "trips": 132,
+        "km": 4295.6,
+        "cost_inr": 42372.53,
+        "avg_solve_time_ms": 7663.6,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      }
+    ],
+    "D-noForecast": [
+      {
+        "seed": 1,
+        "policy": "D-noForecast",
+        "days": 14,
+        "stockout_days": 149,
+        "stockout_days_ven_weighted": 367.0,
+        "unmet_demand": 545,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 22713,
+        "violations": 3,
+        "reserve_breaches": 130,
+        "trips": 140,
+        "km": 4685.8,
+        "cost_inr": 45499.61,
+        "avg_solve_time_ms": 9704.3,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      },
+      {
+        "seed": 2,
+        "policy": "D-noForecast",
+        "days": 14,
+        "stockout_days": 160,
+        "stockout_days_ven_weighted": 402.0,
+        "unmet_demand": 590,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 18084,
+        "violations": 0,
+        "reserve_breaches": 129,
+        "trips": 143,
+        "km": 4838.5,
+        "cost_inr": 47110.64,
+        "avg_solve_time_ms": 9315.1,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      },
+      {
+        "seed": 3,
+        "policy": "D-noForecast",
+        "days": 14,
+        "stockout_days": 160,
+        "stockout_days_ven_weighted": 404.0,
+        "unmet_demand": 548,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 17769,
+        "violations": 0,
+        "reserve_breaches": 118,
+        "trips": 132,
+        "km": 4324.8,
+        "cost_inr": 42560.04,
+        "avg_solve_time_ms": 8271.1,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      }
+    ],
+    "D-noGamma": [
+      {
+        "seed": 1,
+        "policy": "D-noGamma",
+        "days": 14,
+        "stockout_days": 149,
+        "stockout_days_ven_weighted": 367.0,
+        "unmet_demand": 545,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 14086,
+        "violations": 2,
+        "reserve_breaches": 129,
+        "trips": 137,
+        "km": 4424.2,
+        "cost_inr": 45412.19,
+        "avg_solve_time_ms": 2716.3,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      },
+      {
+        "seed": 2,
+        "policy": "D-noGamma",
+        "days": 14,
+        "stockout_days": 157,
+        "stockout_days_ven_weighted": 393.0,
+        "unmet_demand": 572,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 16662,
+        "violations": 0,
+        "reserve_breaches": 121,
+        "trips": 136,
+        "km": 4421.0,
+        "cost_inr": 45171.3,
+        "avg_solve_time_ms": 2682.0,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      },
+      {
+        "seed": 3,
+        "policy": "D-noGamma",
+        "days": 14,
+        "stockout_days": 156,
+        "stockout_days_ven_weighted": 392.0,
+        "unmet_demand": 546,
+        "expired_units": 0,
+        "expired_inr": 0.0,
+        "waste_moved": 13989,
+        "violations": 0,
+        "reserve_breaches": 114,
+        "trips": 119,
+        "km": 3706.2,
+        "cost_inr": 36925.81,
+        "avg_solve_time_ms": 3450.4,
+        "solver_tiers": [
+          "greedy-descent"
+        ]
+      }
+    ]
+  }
+}

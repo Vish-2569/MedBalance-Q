@@ -565,3 +565,70 @@ async def whatif_endpoint(req: WhatIfRequest):
         live_metrics=metrics,
         solver=req.solver,
     )
+
+
+# ── Eval / Replay endpoints ─────────────────────────────────────
+
+_EVAL_JOBS: dict[str, dict[str, Any]] = {}
+
+
+class EvalRequest(BaseModel):
+    seeds: int = 20
+    days: int = 28
+    policies: str = "A,B,C,D,E"
+    solver: str = "local"
+
+
+@router.post("/eval/replay")
+async def start_eval(req: EvalRequest):
+    """Start a replay evaluation as a background job."""
+    import threading
+    job_id = f"eval-{uuid.uuid4().hex[:8]}"
+    _EVAL_JOBS[job_id] = {"status": "running", "result": None}
+
+    def _run():
+        try:
+            from app.eval.replay import run_single, aggregate, AggregatedResult
+            policies = [p.strip() for p in req.policies.split(",")]
+            seeds = list(range(1, req.seeds + 1))
+            solver_override = req.solver if req.solver != "chain" else None
+            all_agg = []
+            for pol in policies:
+                runs = [run_single(s, pol, req.days, solver_override=solver_override) for s in seeds]
+                all_agg.append(aggregate(runs).to_dict())
+            _EVAL_JOBS[job_id] = {"status": "done", "result": {"aggregated": all_agg}}
+        except Exception as e:
+            _EVAL_JOBS[job_id] = {"status": "error", "error": str(e)}
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    return {"job_id": job_id, "status": "running"}
+
+
+@router.get("/eval/{job_id}")
+async def get_eval(job_id: str):
+    job = _EVAL_JOBS.get(job_id)
+    if not job:
+        return {"error": "Job not found"}
+    return job
+
+
+@router.get("/plan/{plan_id}/regret")
+async def get_regret(plan_id: str, order_id: str | None = None):
+    """Return regret ledger for a plan, optionally filtered to one order."""
+    if settings.USE_FIXTURES:
+        from medbal_common.fixtures import CONTRACTS_DIR
+        demo = json.loads((CONTRACTS_DIR / "plan-demo.json").read_text())
+        regret = demo.get("regret", [])
+        if order_id:
+            regret = [r for r in regret if r.get("order_id") == order_id]
+        return regret
+
+    solve = _PLAN_SOLVE.get(plan_id)
+    if not solve:
+        return []
+    meta = solve.meta if hasattr(solve, "meta") else {}
+    regret = meta.get("regret", [])
+    if order_id:
+        regret = [r for r in regret if r.get("order_id") == order_id]
+    return regret

@@ -66,14 +66,14 @@ def solve_chain(
         attempts.append(attempt)
 
         if result.samples and result.error is None:
-            print(f"[QPI AI OPT] ✓ {solver.tier_name} succeeded — energy: {result.samples[0].energy:.4f}, time: {result.time_ms:.0f}ms")
+            print(f"[QPI AI OPT] OK {solver.tier_name} succeeded - energy: {result.samples[0].energy:.4f}, time: {result.time_ms:.0f}ms")
             log.info("tier_succeeded", tier=solver.tier_name, energy=result.samples[0].energy, time_ms=round(result.time_ms, 2))
             best_result = result
             best_result.meta["attempts"] = attempts
             _write_evidence(Q, offset, n_vars, attempts, best_result)
             return best_result
 
-        print(f"[QPI AI OPT] ✗ {solver.tier_name} skipped — {result.error}")
+        print(f"[QPI AI OPT] SKIP {solver.tier_name} skipped - {result.error}")
         log.info(
             "tier_failed",
             tier=solver.tier_name,

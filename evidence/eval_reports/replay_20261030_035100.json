@@ -1,0 +1,58 @@
+{
+  "timestamp": "20261030_035100",
+  "n_seeds": 1,
+  "n_days": 28,
+  "solver_override": "local",
+  "total_time_s": 0.4,
+  "aggregated": [
+    {
+      "policy": "E",
+      "n_seeds": 1,
+      "stockout_days": {
+        "mean": 528,
+        "std": 0,
+        "ci95_lo": 528.0,
+        "ci95_hi": 528.0
+      },
+      "stockout_ven_weighted_mean": 1273.0,
+      "unmet_demand_mean": 3080,
+      "expired_units_mean": 1068,
+      "expired_inr_mean": 2759.0,
+      "waste_moved_mean": 19428,
+      "violations_mean": 0,
+      "reserve_breaches_mean": 250,
+      "trips_mean": 169,
+      "km_mean": 5549.3,
+      "cost_inr_mean": 51505.75,
+      "avg_solve_ms": 38.3,
+      "solver_tiers": [
+        "milp-OPTIMAL"
+      ]
+    }
+  ],
+  "ablation": [],
+  "per_seed": {
+    "E": [
+      {
+        "seed": 1,
+        "policy": "E",
+        "days": 28,
+        "stockout_days": 528,
+        "stockout_days_ven_weighted": 1273.0,
+        "unmet_demand": 3080,
+        "expired_units": 1068,
+        "expired_inr": 2759.0,
+        "waste_moved": 19428,
+        "violations": 0,
+        "reserve_breaches": 250,
+        "trips": 169,
+        "km": 5549.3,
+        "cost_inr": 51505.75,
+        "avg_solve_time_ms": 38.3,
+        "solver_tiers": [
+          "milp-OPTIMAL"
+        ]
+      }
+    ]
+  }
+}
