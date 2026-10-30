@@ -1682,6 +1682,7 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
 ## Runtime — live frontend/backend integration (2026-10-30)
 
 ### Done
+- Replaced generic repeated `progress` event chips in the top bar with concise event descriptions and collapsed repeated optimizer progress events for the same plan.
 - Connected the plan/map/results views to real core-api orders and the optimizer's actual plan-run response; the latest optimizer output is retained in browser storage so results survive a page reload.
 - Corrected live API contracts for ingestion reports/reviews, review resolution, simulator reset, scenario activation, order rejection, AI health, order provenance, and benchmark lookup.
 - Limited review corrections to drug codes from the review candidates or verified core drug catalog, and require a positive integer quantity and expiry.

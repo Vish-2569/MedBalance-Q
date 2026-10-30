@@ -7,6 +7,37 @@ import { cn } from '@/lib/utils';
 
 const SPEEDS = [1, 2, 5, 10];
 
+function eventLabel(type: string, data: Record<string, unknown>): string {
+  if (type === 'plan.progress') {
+    if (typeof data.detail === 'string' && data.detail.trim()) return data.detail;
+    if (typeof data.stage === 'string') {
+      return `Optimizer: ${data.stage.replace(/_/g, ' ')}`;
+    }
+    return 'Optimizer running';
+  }
+  if (type === 'plan.completed') {
+    return typeof data.transfers === 'number'
+      ? `Plan ready · ${data.transfers} transfers`
+      : 'Plan ready';
+  }
+  if (type === 'plan.revised') return 'Plan updated';
+  if (type === 'order.status') {
+    return typeof data.new_status === 'string' ? `Order ${data.new_status}` : 'Order updated';
+  }
+  if (type === 'custody.scanned') {
+    return typeof data.event_type === 'string' ? `Custody ${data.event_type}` : 'Custody scanned';
+  }
+
+  const labels: Record<string, string> = {
+    'report.received': 'Report received',
+    'inventory.updated': 'Inventory updated',
+    'anomaly.flagged': 'Review needed',
+    'forecast.updated': 'Forecast updated',
+    'coldchain.alert': 'Cold-chain alert',
+  };
+  return labels[type] ?? type.split('.').join(' ');
+}
+
 export default function TopBar() {
   const queryClient = useQueryClient();
   const { data: clock } = useQuery({ queryKey: ['clock'], queryFn: api.getClock, refetchInterval: 5000 });
@@ -16,6 +47,12 @@ export default function TopBar() {
   const startMut = useMutation({ mutationFn: api.startClock, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clock'] }) });
   const pauseMut = useMutation({ mutationFn: api.pauseClock, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clock'] }) });
   const speedMut = useMutation({ mutationFn: api.setSpeed, onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clock'] }) });
+  const displayEvents = events.filter((event, index) =>
+    event.type !== 'plan.progress'
+      || !events.slice(0, index).some(previous =>
+        previous.type === event.type && previous.data.plan_id === event.data.plan_id,
+      ),
+  ).slice(0, 3);
 
   return (
     <header className="bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-4 shrink-0">
@@ -67,12 +104,13 @@ export default function TopBar() {
       <div className="flex items-center gap-2 max-w-md overflow-hidden">
         <Zap className="w-4 h-4 text-amber-500 shrink-0" />
         <div className="flex gap-1.5 overflow-x-auto text-xs">
-          {events.length === 0 && (
+          {displayEvents.length === 0 && (
             <span className="text-slate-400 italic">No events yet</span>
           )}
-          {events.map(e => (
+          {displayEvents.map(e => (
             <span
               key={e.id}
+              title={eventLabel(e.type, e.data)}
               className={cn(
                 'px-2 py-0.5 rounded-full whitespace-nowrap border',
                 e.type.includes('alert') || e.type.includes('anomaly')
@@ -82,7 +120,7 @@ export default function TopBar() {
                     : 'bg-slate-50 border-slate-200 text-slate-600',
               )}
             >
-              {e.type.split('.').pop()}
+              {eventLabel(e.type, e.data)}
             </span>
           ))}
         </div>
