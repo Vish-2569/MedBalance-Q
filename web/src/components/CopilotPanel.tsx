@@ -124,46 +124,65 @@ export default function CopilotPanel() {
         signal: controller.signal,
       });
 
-      if (!res.ok || !res.body) throw new Error(`SSE failed: ${res.status}`);
+      if (!res.ok) throw new Error(`Copilot API returned HTTP ${res.status}.`);
+      if (!res.body) throw new Error('Copilot API returned an empty stream.');
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
       let accumulated = '';
+      let answerText = '';
+      let responseError = '';
       const tools: NonNullable<CopilotMessage['tool_calls']> = [];
+
+      const processFrame = (frame: string) => {
+        const payload = frame
+          .split('\n')
+          .filter(line => line.startsWith('data:'))
+          .map(line => line.slice(5).replace(/^ /, ''))
+          .join('\n')
+          .trim();
+        if (!payload || payload === '[DONE]') return;
+
+        const evt = JSON.parse(payload);
+        const eventText = [evt.text, evt.content, evt.token]
+          .find(value => typeof value === 'string') as string | undefined;
+
+        if (evt.type === 'token') {
+          if (eventText) {
+            accumulated += eventText;
+            setStreamContent(accumulated);
+          }
+        } else if (evt.type === 'answer') {
+          answerText = eventText ?? '';
+          setStreamContent(answerText);
+        } else if (evt.type === 'error') {
+          responseError = eventText || 'The copilot could not generate a response.';
+        } else if (evt.type === 'tool_call') {
+          tools.push({ name: evt.name, args: evt.args ?? {}, result: evt.result });
+          setStreamTools([...tools]);
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const payload = line.slice(6).trim();
-          if (payload === '[DONE]') break;
-
-          try {
-            const evt = JSON.parse(payload);
-            if (evt.type === 'token' || evt.content) {
-              accumulated += evt.content ?? evt.token ?? '';
-              setStreamContent(accumulated);
-            } else if (evt.type === 'tool_call') {
-              tools.push({ name: evt.name, args: evt.args ?? {}, result: evt.result });
-              setStreamTools([...tools]);
-            }
-          } catch {
-            // skip malformed JSON lines
-          }
-        }
+        const frames = buffer.replace(/\r\n/g, '\n').split('\n\n');
+        buffer = frames.pop() ?? '';
+        frames.forEach(processFrame);
       }
+
+      buffer += decoder.decode();
+      if (buffer.trim()) processFrame(buffer.replace(/\r\n/g, '\n'));
 
       const assistantMsg: CopilotMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: accumulated || 'No response received.',
+        content: responseError
+          ? `Copilot error: ${responseError}`
+          : (answerText || accumulated).trim() || 'The copilot returned an empty response.',
         tool_calls: tools.length > 0 ? tools : undefined,
         timestamp: Date.now(),
       };
@@ -173,7 +192,7 @@ export default function CopilotPanel() {
         const errorMsg: CopilotMessage = {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: 'Connection error. The copilot service may be unavailable.',
+          content: `Copilot request failed: ${(err as Error).message}`,
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, errorMsg]);

@@ -56,9 +56,10 @@ class CopilotSession:
 
         for round_idx in range(MAX_TOOL_ROUNDS + 1):
             result = await self._call_llm(messages, spec)
-            if not result:
-                yield {"type": "error", "text": "LLM call failed"}
-                self._save_message(session_id, "assistant", "[error: LLM call failed]")
+            if not result or result.get("error"):
+                error = result.get("error") if result else "The AI provider could not generate a response."
+                yield {"type": "error", "text": error}
+                self._save_message(session_id, "assistant", f"[error: {error}]")
                 return
 
             tool_calls = result.get("tool_calls") or []
@@ -133,8 +134,16 @@ class CopilotSession:
                 resp["tool_calls"] = result.tool_calls
             return resp
         except Exception as exc:
-            log.warning("copilot_llm_error", error=str(exc))
-            return None
+            error = str(exc)
+            log.warning("copilot_llm_error", error=error)
+            if "resource_exhausted" in error.lower() or "429" in error:
+                message = (
+                    "The Gemini API quota is exhausted. Check the configured "
+                    "project's quota or billing, then try again."
+                )
+            else:
+                message = "The AI provider could not generate a response. Check the GenAI service logs."
+            return {"error": message}
 
     # ── DB persistence ────────────────────────────────────────────
 

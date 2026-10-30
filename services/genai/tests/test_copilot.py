@@ -174,8 +174,8 @@ def test_copilot_basic_response():
     assert "session" in types
     assert "answer" in types or "token" in types
     answer_evt = next((e for e in events if e["type"] == "answer"), None)
-    if answer_evt:
-        assert "text" in answer_evt
+    assert answer_evt is not None
+    assert answer_evt["text"] == "The district has 5 facilities with a total shortage of 393 units."
 
 
 def test_copilot_creates_session_id():
@@ -330,6 +330,27 @@ def test_copilot_firewall_blocks_bad_number():
     answer = next(e for e in events if e["type"] == "answer")
     assert answer["grounding_ok"] is False
     assert "could not be verified" in answer["text"]
+
+
+def test_copilot_reports_provider_quota_errors():
+    class QuotaLimitedProvider(FakeProvider):
+        def complete(self, *args: Any, **kwargs: Any) -> LLMResult:
+            raise RuntimeError("429 RESOURCE_EXHAUSTED: quota exceeded")
+
+    session = CopilotSession(LLMService(
+        provider=QuotaLimitedProvider(),
+        cache=LLMCache(redis_client=None),
+    ))
+    events = []
+
+    async def collect():
+        async for event in session.chat(None, "Why was this transfer rejected?"):
+            events.append(event)
+
+    asyncio.get_event_loop().run_until_complete(collect())
+
+    error = next(event for event in events if event["type"] == "error")
+    assert "Gemini API quota is exhausted" in error["text"]
 
 
 # ── Helper functions ──────────────────────────────────────────────

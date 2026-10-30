@@ -1717,3 +1717,18 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
 ### Requests to other lanes
 - **L1 / core-api:** Provide a QR-token lookup/read flow for the custody scan page so it can safely display the order represented by a signed QR token before submitting custody events.
 - Proposed `POST /orders/resolve-qr-token` in `contracts/openapi/core-api.yaml`; core-api must verify the HMAC and return the associated order before the PDF QR workflow is end-to-end.
+
+## Runtime — Copilot response handling (2026-10-30)
+
+### Done
+- Fixed the Copilot SSE client to display answer text from both `token` and `answer` events, and to handle complete SSE frames even when split across network chunks.
+- Display provider errors instead of replacing them with “No response received”; Gemini quota failures now return an actionable, credential-safe message.
+- Added coverage for successful answer text and quota-error events.
+
+### How to verify
+1. `cd web; npm run build` and `npm run lint`.
+2. `uv run --project services/genai pytest services/genai/tests/test_copilot.py -q`.
+3. Open Copilot and ask a question. Successful provider responses should be displayed; if Gemini quota is exhausted, the panel should say so instead of showing an empty response.
+
+### Open issues
+- The configured Gemini project has exhausted its free-tier daily request quota; genuine LLM answers require available quota or updated billing. The app now surfaces that provider response instead of hiding it.
