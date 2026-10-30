@@ -1,0 +1,46 @@
+{
+  "timestamp": "20261030T001057",
+  "n_vars": 143,
+  "offset": 37.5,
+  "q_hash": "bec2dc5f28cb",
+  "attempts": [
+    {
+      "tier": "qpiai-platform",
+      "time_ms": 0.93,
+      "n_vars": 143,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "No module named 'qpiai_opt'"
+    },
+    {
+      "tier": "qpiai-local",
+      "time_ms": 0.84,
+      "n_vars": 143,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "No module named 'qpiai_opt'"
+    },
+    {
+      "tier": "neal-sa",
+      "time_ms": 0.9,
+      "n_vars": 143,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "No module named 'neal'"
+    },
+    {
+      "tier": "greedy-descent",
+      "time_ms": 18722.9,
+      "n_vars": 143,
+      "samples_returned": 5,
+      "energy": 21.14656986479499,
+      "error": null
+    }
+  ],
+  "winner": {
+    "tier": "greedy-descent",
+    "energy": 21.14656986479499,
+    "time_ms": 18722.9,
+    "samples_count": 5
+  }
+}

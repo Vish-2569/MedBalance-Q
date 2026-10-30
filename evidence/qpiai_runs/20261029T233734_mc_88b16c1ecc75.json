@@ -1,0 +1,38 @@
+{
+  "timestamp": "20261029T233734",
+  "type": "maxcut",
+  "n_nodes": 5,
+  "n_edges": 10,
+  "graph_hash": "88b16c1ecc75",
+  "attempts": [
+    {
+      "tier": "qcloud-simulator",
+      "time_ms": 0.31,
+      "cut_value": 0,
+      "approx_ratio": 0,
+      "error": "No module named 'qpiai_quantum'"
+    },
+    {
+      "tier": "qsv-local",
+      "time_ms": 0.22,
+      "cut_value": 0,
+      "approx_ratio": 0,
+      "error": "No module named 'qpiai_quantum'"
+    },
+    {
+      "tier": "exact-brute-force",
+      "time_ms": 0.56,
+      "cut_value": 3.4037240106400306,
+      "approx_ratio": 1.0,
+      "error": null
+    }
+  ],
+  "winner": {
+    "tier": "exact-brute-force",
+    "cut_value": 3.4037240106400306,
+    "approx_ratio": 1.0,
+    "time_ms": 0.56,
+    "depth": 0,
+    "shots": 0
+  }
+}

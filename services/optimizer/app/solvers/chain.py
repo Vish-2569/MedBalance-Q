@@ -19,8 +19,7 @@ from .greedy_descent import GreedyDescent
 log = get_logger("solver.chain")
 
 _module_path = Path(__file__).resolve()
-_project_root = _module_path.parents[4] if len(_module_path.parents) > 4 else _module_path.parents[2]
-EVIDENCE_DIR = _project_root / "evidence" / "qpiai_runs"
+EVIDENCE_DIR = _module_path.parents[2] / "evidence" / "qpiai_runs"
 
 DEFAULT_TIERS: list[SolverPort] = [
     QpiAIOptPlatform(),

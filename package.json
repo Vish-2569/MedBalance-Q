@@ -1,0 +1,28 @@
+{
+  "name": "medbalance(4)",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vish-2569/MedBalance-Q.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Vish-2569/MedBalance-Q/issues"
+  },
+  "homepage": "https://github.com/Vish-2569/MedBalance-Q#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}

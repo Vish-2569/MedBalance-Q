@@ -22,8 +22,7 @@ from medbal_common.settings import settings
 log = get_logger("optimizer.maxcut")
 
 _module_path = Path(__file__).resolve()
-_project_root = _module_path.parents[3] if len(_module_path.parents) > 3 else _module_path.parents[1]
-EVIDENCE_DIR = _project_root / "evidence" / "qpiai_runs"
+EVIDENCE_DIR = _module_path.parents[1] / "evidence" / "qpiai_runs"
 
 
 @dataclass
