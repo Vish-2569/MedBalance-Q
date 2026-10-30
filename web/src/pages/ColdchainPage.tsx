@@ -51,7 +51,8 @@ function DeviceCard({ device }: { device: ColdchainStatus }) {
     ok: { bg: 'bg-teal-50 border-teal-200', badge: 'bg-teal-100 text-teal-700', label: 'OK' },
     warning: { bg: 'bg-amber-50 border-amber-200', badge: 'bg-amber-100 text-amber-700', label: 'Warning' },
     excursion: { bg: 'bg-red-50 border-red-200', badge: 'bg-red-100 text-red-700', label: 'Excursion' },
-  }[device.state] ?? { bg: 'bg-slate-50 border-slate-200', badge: 'bg-slate-100 text-slate-600', label: device.state };
+    unknown: { bg: 'bg-slate-50 border-slate-200', badge: 'bg-slate-100 text-slate-600', label: 'Unknown' },
+  }[device.state];
 
   return (
     <div className={cn('rounded-lg border p-4', stateConfig.bg)}>
@@ -59,7 +60,9 @@ function DeviceCard({ device }: { device: ColdchainStatus }) {
         <div className="flex items-center gap-2">
           <Thermometer className="w-4 h-4 text-slate-500" />
           <span className="font-semibold text-slate-800">{device.device_id}</span>
-          <span className="text-xs text-slate-500">({device.vehicle_id})</span>
+          <span className="text-xs text-slate-500">
+            ({device.vehicle_id ?? (device.facility_id ? `Facility ${device.facility_id}` : 'Location unavailable')})
+          </span>
         </div>
         <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium', stateConfig.badge)}>
           {stateConfig.label}
@@ -93,14 +96,17 @@ function DeviceCard({ device }: { device: ColdchainStatus }) {
       <div className="flex items-center gap-4 text-xs text-slate-600">
         <span className="flex items-center gap-1">
           <Thermometer className="w-3 h-3" />
-          <span className={cn('font-mono font-semibold', device.temperature_c > COLD_MAX ? 'text-red-600' : device.temperature_c < COLD_MIN ? 'text-blue-600' : 'text-teal-600')}>
-            {device.temperature_c.toFixed(1)}°C
+          <span className={cn(
+            'font-mono font-semibold',
+            device.temperature_c == null ? 'text-slate-400' : device.temperature_c > COLD_MAX ? 'text-red-600' : device.temperature_c < COLD_MIN ? 'text-blue-600' : 'text-teal-600',
+          )}>
+            {device.temperature_c == null ? 'Unavailable' : `${device.temperature_c.toFixed(1)}°C`}
           </span>
         </span>
         <span className="flex items-center gap-1">
           <Battery className="w-3 h-3" />
-          <span className={cn('font-mono', device.battery_pct < 20 ? 'text-red-600 font-semibold' : '')}>
-            {device.battery_pct}%
+          <span className={cn('font-mono', device.battery_pct != null && device.battery_pct < 20 ? 'text-red-600 font-semibold' : '')}>
+            {device.battery_pct == null ? '—' : `${device.battery_pct}%`}
           </span>
         </span>
         <span className="flex items-center gap-1">

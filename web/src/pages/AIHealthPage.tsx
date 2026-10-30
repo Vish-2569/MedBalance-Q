@@ -61,40 +61,40 @@ export default function AIHealthPage() {
         <StatCard
           icon={Activity}
           label="Total LLM Calls"
-          value={String(health.total_calls)}
+          value={health.total_calls == null ? 'Unavailable' : String(health.total_calls)}
           color="text-teal-600"
         />
         <StatCard
           icon={Database}
           label="Cache Hit Rate"
-          value={formatPct(health.cache_hit_rate)}
+          value={health.cache_hit_rate == null ? 'Unavailable' : formatPct(health.cache_hit_rate)}
           color="text-blue-600"
-          sub={health.cache_hit_rate >= 0.5 ? 'Good' : 'Low'}
+          sub={health.cache_hit_rate == null ? undefined : health.cache_hit_rate >= 0.5 ? 'Good' : 'Low'}
         />
         <StatCard
           icon={Clock}
           label="P95 Latency"
-          value={`${health.p95_latency_ms}ms`}
-          color={health.p95_latency_ms > 2000 ? 'text-red-600' : 'text-slate-800'}
+          value={health.p95_latency_ms == null ? 'Unavailable' : `${health.p95_latency_ms}ms`}
+          color={health.p95_latency_ms != null && health.p95_latency_ms > 2000 ? 'text-red-600' : 'text-slate-800'}
         />
         <StatCard
           icon={AlertCircle}
           label="Schema Failures"
-          value={String(health.schema_failures)}
-          color={health.schema_failures > 5 ? 'text-red-600' : 'text-amber-600'}
+          value={health.schema_failures == null ? 'Unavailable' : String(health.schema_failures)}
+          color={health.schema_failures != null && health.schema_failures > 5 ? 'text-red-600' : 'text-amber-600'}
         />
         <StatCard
           icon={RefreshCw}
           label="Fallbacks"
-          value={String(health.fallbacks)}
+          value={health.fallbacks == null ? 'Unavailable' : String(health.fallbacks)}
           color="text-amber-600"
-          sub="Template fallback used"
+          sub="Calls using fallback"
         />
         <StatCard
           icon={Shield}
           label="Firewall Blocks"
-          value={String(health.firewall_blocks)}
-          color={health.firewall_blocks > 0 ? 'text-red-600' : 'text-teal-600'}
+          value={health.firewall_blocks == null ? 'Unavailable' : String(health.firewall_blocks)}
+          color={health.firewall_blocks != null && health.firewall_blocks > 0 ? 'text-red-600' : 'text-teal-600'}
           sub="Narration grounding"
         />
       </div>
@@ -103,26 +103,34 @@ export default function AIHealthPage() {
       <div className="bg-white rounded-lg border border-slate-200 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Zap className="w-5 h-5 text-amber-500" />
-          <h3 className="font-semibold text-slate-700">Registered Prompts</h3>
+          <h3 className="font-semibold text-slate-700">Prompt Catalog</h3>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-slate-50 text-xs text-slate-500 uppercase">
-              <th className="text-left px-3 py-2 font-medium">Prompt ID</th>
-              <th className="text-right px-3 py-2 font-medium">Version</th>
-              <th className="text-right px-3 py-2 font-medium">Calls</th>
-            </tr>
-          </thead>
-          <tbody>
-            {health.prompts.map(p => (
-              <tr key={p.id} className="border-t border-slate-100">
-                <td className="px-3 py-2 font-mono text-slate-700">{p.id}</td>
-                <td className="px-3 py-2 text-right text-slate-500">v{p.version}</td>
-                <td className="px-3 py-2 text-right font-mono text-slate-700">{p.calls}</td>
+        {health.prompts.length > 0 ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-xs text-slate-500 uppercase">
+                <th className="text-left px-3 py-2 font-medium">Prompt ID</th>
+                <th className="text-right px-3 py-2 font-medium">Version</th>
+                <th className="text-right px-3 py-2 font-medium">Calls</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {health.prompts.map(p => (
+                <tr key={p.id} className="border-t border-slate-100">
+                  <td className="px-3 py-2 font-mono text-slate-700">{p.id}</td>
+                  <td className="px-3 py-2 text-right text-slate-500">v{p.version}</td>
+                  <td className="px-3 py-2 text-right font-mono text-slate-700">{p.calls}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-sm text-slate-400 italic">
+            {health.prompts_loaded
+              ? `${health.prompts_loaded} prompts loaded; prompt-level details are not exposed by the live API.`
+              : 'Prompt-level details are not exposed by the live API.'}
+          </p>
+        )}
       </div>
 
       {/* Eval scores */}
@@ -157,7 +165,7 @@ export default function AIHealthPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-400 italic">No eval data yet.</p>
+          <p className="text-sm text-slate-400 italic">Eval scores are not exposed by the live API.</p>
         )}
       </div>
 

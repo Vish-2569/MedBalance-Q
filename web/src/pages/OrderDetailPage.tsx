@@ -15,6 +15,7 @@ const NODE_COLORS: Record<string, { bg: string; border: string; text: string }> 
   candidate:  { bg: '#dcfce7', border: '#22c55e', text: '#166534' },
   order:      { bg: '#fef3c7', border: '#f59e0b', text: '#854d0e' },
   custody:    { bg: '#fef3c7', border: '#f59e0b', text: '#854d0e' },
+  audit:      { bg: '#f1f5f9', border: '#64748b', text: '#334155' },
 };
 
 const QUBO_COLORS: Record<string, string> = {
@@ -43,13 +44,13 @@ export default function OrderDetailPage() {
     enabled: !!id,
   });
 
-  const { data: provenance, isLoading: provLoading } = useQuery({
+  const { data: provenance, isLoading: provLoading, error: provError } = useQuery({
     queryKey: ['provenance', id],
     queryFn: () => api.getProvenance(id!),
     enabled: !!id,
   });
 
-  const { data: custody = [], isLoading: custodyLoading } = useQuery({
+  const { data: custody = [], isLoading: custodyLoading, error: custodyError } = useQuery({
     queryKey: ['custody', id],
     queryFn: () => api.getCustody(id!),
     enabled: !!id,
@@ -71,16 +72,23 @@ export default function OrderDetailPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['order', id] });
       void queryClient.invalidateQueries({ queryKey: ['orders'] });
+      void queryClient.invalidateQueries({ queryKey: ['planDemo'] });
     },
   });
 
   const rejectMut = useMutation({
-    mutationFn: () => api.rejectOrder(id!),
+    mutationFn: (reason: string) => api.rejectOrder(id!, reason),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['order', id] });
       void queryClient.invalidateQueries({ queryKey: ['orders'] });
+      void queryClient.invalidateQueries({ queryKey: ['planDemo'] });
     },
   });
+
+  const rejectOrder = () => {
+    const reason = window.prompt('Enter a reason for rejecting this transfer order:');
+    if (reason?.trim()) rejectMut.mutate(reason.trim());
+  };
 
   const allCustody = order?.custody_events ?? custody;
 
@@ -120,6 +128,11 @@ export default function OrderDetailPage() {
 
       {/* Header */}
       <div className="bg-white rounded-lg border border-slate-200 p-5">
+        {(approveMut.error || rejectMut.error) && (
+          <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {(approveMut.error ?? rejectMut.error)?.message}
+          </div>
+        )}
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -142,7 +155,7 @@ export default function OrderDetailPage() {
           <div className="text-right text-sm text-slate-500">
             <p className="font-medium text-slate-700">{order.drug_name}</p>
             <p>{order.qty} units &middot; Batch {order.batch_no}</p>
-            <p className="text-xs mt-1">Created {shortDate(order.created_at)}</p>
+            <p className="text-xs mt-1">Created {shortDate(order.created_at ?? '')}</p>
             <p className="text-xs text-slate-400">Score: {order.score.toFixed(2)}</p>
           </div>
         </div>
@@ -158,7 +171,7 @@ export default function OrderDetailPage() {
               {approveMut.isPending ? 'Approving...' : 'Approve'}
             </button>
             <button
-              onClick={() => rejectMut.mutate()}
+              onClick={rejectOrder}
               disabled={rejectMut.isPending}
               className="flex items-center gap-1.5 px-4 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50"
             >
@@ -277,6 +290,10 @@ export default function OrderDetailPage() {
           <div className="flex items-center gap-2 text-slate-400 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading...
           </div>
+        ) : custodyError ? (
+          <p role="alert" className="text-sm text-red-600">
+            Could not load custody events: {custodyError.message}
+          </p>
         ) : allCustody.length > 0 ? (
           <CustodyTimeline events={allCustody} />
         ) : (
@@ -294,6 +311,10 @@ export default function OrderDetailPage() {
           <div className="flex items-center gap-2 text-slate-400 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading...
           </div>
+        ) : provError ? (
+          <p role="alert" className="text-sm text-red-600">
+            Could not load provenance: {provError.message}
+          </p>
         ) : provenance && provenance.nodes.length > 0 ? (
           <ProvenanceSVG nodes={provenance.nodes} edges={provenance.edges} />
         ) : (
@@ -369,7 +390,7 @@ function CustodyTimeline({ events }: { events: CustodyEvent[] }) {
 /* -- Provenance SVG (left-to-right flow) -------------------------------- */
 
 function ProvenanceSVG({ nodes, edges }: { nodes: ProvenanceNode[]; edges: { source: string; target: string }[] }) {
-  const typeOrder: ProvenanceNode['type'][] = ['report', 'extraction', 'lot', 'candidate', 'order', 'custody'];
+  const typeOrder: ProvenanceNode['type'][] = ['report', 'extraction', 'lot', 'candidate', 'order', 'audit', 'custody'];
   const grouped = new Map<string, ProvenanceNode[]>();
   for (const n of nodes) {
     const list = grouped.get(n.type) ?? [];
@@ -407,6 +428,10 @@ function ProvenanceSVG({ nodes, edges }: { nodes: ProvenanceNode[]; edges: { sou
       return `qty ${n.meta.qty}`;
     if (n.type === 'order' && n.meta.status)
       return String(n.meta.status);
+    if (n.type === 'audit' && n.meta.actor)
+      return String(n.meta.actor);
+    if (n.type === 'custody' && n.meta.qty != null)
+      return `qty ${n.meta.qty}`;
     if (n.type === 'report' && n.meta.format)
       return String(n.meta.format).toUpperCase();
     return '';

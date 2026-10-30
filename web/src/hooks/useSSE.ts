@@ -45,10 +45,14 @@ export function useSSEConnection() {
         void queryClient.invalidateQueries({ queryKey: ['positions'] });
         void queryClient.invalidateQueries({ queryKey: ['lots'] });
       } else if (type === 'plan.completed' || type === 'plan.revised') {
-        void queryClient.invalidateQueries({ queryKey: ['plan'] });
+        void queryClient.invalidateQueries({ queryKey: ['planDemo'] });
         void queryClient.invalidateQueries({ queryKey: ['orders'] });
+        void queryClient.invalidateQueries({ queryKey: ['benchmark'] });
       } else if (type === 'order.status') {
         void queryClient.invalidateQueries({ queryKey: ['orders'] });
+        if (typeof data.order_id === 'string') {
+          void queryClient.invalidateQueries({ queryKey: ['order', data.order_id] });
+        }
       } else if (type === 'report.received' || type === 'anomaly.flagged') {
         void queryClient.invalidateQueries({ queryKey: ['reports'] });
         void queryClient.invalidateQueries({ queryKey: ['reviews'] });
@@ -58,14 +62,6 @@ export function useSSEConnection() {
     };
 
     EVENT_TYPES.forEach(t => es.addEventListener(t, handler(t)));
-    es.onerror = () => {
-      setTimeout(() => {
-        if (esRef.current === es) {
-          es.close();
-          esRef.current = null;
-        }
-      }, 5000);
-    };
 
     return () => { es.close(); esRef.current = null; };
   }, [queryClient]);

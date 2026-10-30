@@ -1,0 +1,12 @@
+BEGIN;
+
+ALTER TABLE transfer_order
+    ADD COLUMN IF NOT EXISTS qr_token TEXT;
+
+ALTER TABLE custody_event
+    ADD COLUMN IF NOT EXISTS qty INTEGER;
+
+ALTER TABLE custody_event
+    ADD COLUMN IF NOT EXISTS deviation JSONB;
+
+COMMIT;

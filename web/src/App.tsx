@@ -35,6 +35,7 @@ export default function App() {
     <div className="h-screen flex flex-col overflow-hidden">
       <Routes>
         {/* Standalone scan page — no sidebar/navbar */}
+        <Route path="/scan" element={<ScanPage />} />
         <Route path="/scan/:token" element={<ScanPage />} />
 
         {/* Main layout with sidebar */}

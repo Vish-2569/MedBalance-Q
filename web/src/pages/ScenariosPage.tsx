@@ -22,7 +22,10 @@ export default function ScenariosPage() {
   const speedMut = useMutation({ mutationFn: (s: number) => api.setSpeed(s), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clock'] }) });
   const activateMut = useMutation({
     mutationFn: (name: string) => api.activateScenario(name),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scenarios', 'signals'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['scenarios'] });
+      void queryClient.invalidateQueries({ queryKey: ['signals'] });
+    },
   });
   const resetMut = useMutation({
     mutationFn: () => api.resetSim(seed ? Number(seed) : undefined),
@@ -37,6 +40,13 @@ export default function ScenariosPage() {
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
       <h1 className="text-xl font-semibold text-slate-800">Scenario Console</h1>
+      {[startMut.error, pauseMut.error, speedMut.error, activateMut.error, resetMut.error]
+        .filter((error): error is Error => error instanceof Error)
+        .map((error, index) => (
+          <div key={`${error.message}-${index}`} role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error.message}
+          </div>
+        ))}
 
       {/* Clock controls */}
       <div className="bg-white rounded-lg border border-slate-200 p-4">

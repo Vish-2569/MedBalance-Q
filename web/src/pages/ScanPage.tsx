@@ -29,7 +29,7 @@ export default function ScanPage() {
     if (o.id === token) return true;
     if (o.dta_number === token) return true;
     return false;
-  }) ?? orders.find(o => o.status === 'approved') ?? orders[0];
+  });
 
   const currentStatus = localStatus ?? order?.status;
 
@@ -40,6 +40,7 @@ export default function ScanPage() {
       setLocalStatus(data.status as OrderStatus);
       setLastEvent(data.event);
       void queryClient.invalidateQueries({ queryKey: ['orders'] });
+      void queryClient.invalidateQueries({ queryKey: ['planDemo'] });
     },
   });
 
@@ -79,8 +80,12 @@ export default function ScanPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="text-center space-y-3">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto" />
-          <p className="text-slate-700 font-medium">Order not found</p>
-          <p className="text-sm text-slate-500">Token: {token.slice(0, 16)}...</p>
+          <p className="text-slate-700 font-medium">{isError ? 'Could not load orders' : 'Order not found'}</p>
+          <p className="text-sm text-slate-500">
+            {isError
+              ? 'The core API is unavailable. Try again when it is healthy.'
+              : 'No order ID or DTA number matches this token. QR-token lookup is not exposed by the live order API.'}
+          </p>
         </div>
       </div>
     );
@@ -196,7 +201,9 @@ export default function ScanPage() {
         {scanMut.isError && (
           <div className="w-full mt-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-            <span className="text-sm text-red-700">Scan failed. Check token and try again.</span>
+            <span className="text-sm text-red-700">
+              {scanMut.error instanceof Error ? scanMut.error.message : 'Scan failed. Check the token and try again.'}
+            </span>
           </div>
         )}
       </div>

@@ -56,8 +56,8 @@ export type OrderStatus = 'proposed' | 'approved' | 'rejected' | 'dispatched' | 
 
 export interface TransferOrder {
   id: string;
-  dta_number: string;
-  plan_id: string;
+  dta_number?: string;
+  plan_id?: string;
   src_facility_id: string;
   dst_facility_id: string;
   drug_code: string;
@@ -68,7 +68,7 @@ export interface TransferOrder {
   score: number;
   status: OrderStatus;
   temperature_req: 'ambient' | 'cold_chain';
-  created_at: string;
+  created_at?: string;
 }
 
 export interface PlanRun {
@@ -89,10 +89,13 @@ export interface PlanRun {
 }
 
 export interface PlanDemo {
-  plan: PlanRun;
+  plan?: PlanRun;
+  plan_id?: string;
   orders: TransferOrder[];
-  candidates: Candidate[];
-  regret: RegretEntry[];
+  candidates?: Candidate[];
+  regret?: RegretEntry[];
+  persisted?: boolean;
+  persistence_error?: string;
 }
 
 export interface PlanRunResponse {
@@ -141,13 +144,14 @@ export interface Signal {
 
 export interface ColdchainStatus {
   device_id: string;
-  vehicle_id: string;
-  temperature_c: number;
-  battery_pct: number;
+  vehicle_id: string | null;
+  facility_id?: string | null;
+  temperature_c: number | null;
+  battery_pct: number | null;
   last_seen: string;
   alert: boolean;
   temperature_history: number[];
-  state: 'ok' | 'warning' | 'excursion';
+  state: 'ok' | 'warning' | 'excursion' | 'unknown';
 }
 
 export interface BenchmarkRow {
@@ -188,13 +192,14 @@ export interface Benchmark {
 }
 
 export interface ReportItem {
-  drug_code: string;
-  drug_name: string;
-  qty: number;
+  drug_code?: string | null;
+  drug_name?: string;
+  drug_name_raw?: string;
+  qty?: number | null;
   unit?: string;
   batch_no: string | null;
   expiry: string | null;
-  confidence: number;
+  confidence?: number;
 }
 
 export interface StockReport {
@@ -202,8 +207,8 @@ export interface StockReport {
   facility_code: string;
   received_at: string;
   format: string;
-  channel: 'fhir' | 'csv' | 'chat' | 'text';
-  language: 'en' | 'kn' | 'mixed';
+  channel: string;
+  language?: 'en' | 'kn' | 'mixed';
   status: string;
   items: ReportItem[];
   anomalies: string[];
@@ -217,14 +222,15 @@ export interface ReviewItem {
   report_id: string;
   facility_code: string;
   item_index: number;
-  anomaly_type: string;
-  anomaly_explanation: string;
+  anomaly_type?: string;
+  anomaly_explanation?: string;
   status: 'pending' | 'accepted' | 'corrected' | 'rejected' | 'auto_approved';
-  drug_code: string;
-  drug_name: string;
-  extracted_qty: number;
-  confidence: number;
-  candidates: string[];
+  drug_code?: string;
+  drug_name?: string;
+  extracted_qty?: number | null;
+  extracted_expiry?: string | null;
+  confidence?: number;
+  candidates?: string[];
   resolved_qty?: number;
   resolved_expiry?: string;
   resolved_drug_code?: string;
@@ -263,13 +269,14 @@ export interface AIHealthData {
   provider: string;
   model_fast: string;
   model_smart: string;
-  total_calls: number;
-  cache_hit_rate: number;
-  p95_latency_ms: number;
-  schema_failures: number;
-  fallbacks: number;
-  firewall_blocks: number;
+  total_calls?: number;
+  cache_hit_rate?: number;
+  p95_latency_ms?: number;
+  schema_failures?: number;
+  fallbacks?: number;
+  firewall_blocks?: number;
   prompts: { id: string; version: number; calls: number }[];
+  prompts_loaded?: number;
   eval_scores?: Record<string, number>;
 }
 
@@ -292,7 +299,7 @@ export interface OrderDetail extends TransferOrder {
 
 export interface ProvenanceNode {
   id: string;
-  type: 'report' | 'extraction' | 'lot' | 'candidate' | 'order' | 'custody';
+  type: 'report' | 'extraction' | 'lot' | 'candidate' | 'order' | 'custody' | 'audit';
   label: string;
   meta?: Record<string, unknown>;
 }

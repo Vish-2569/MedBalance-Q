@@ -4,24 +4,31 @@ import { MapContainer, TileLayer, CircleMarker, Polyline, Popup, Tooltip } from 
 import 'leaflet/dist/leaflet.css';
 import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import type { Facility } from '@/types/domain';
+import type { Facility, TransferOrder } from '@/types/domain';
 import { stockHealthColor, facilityLabel } from '@/lib/utils';
 import FacilityDrawer from '@/components/FacilityDrawer';
 import DistrictSVG from '@/components/DistrictSVG';
 
 const CENTER: [number, number] = [12.965, 77.605];
+const EMPTY_ORDERS: TransferOrder[] = [];
 
 export default function MapPage() {
   const [selected, setSelected] = useState<Facility | null>(null);
   const [tilesOk, setTilesOk] = useState(true);
 
   const { data: facilities = [], isLoading } = useQuery({ queryKey: ['facilities'], queryFn: api.getFacilities });
-  const { data: positions = [] } = useQuery({ queryKey: ['positions'], queryFn: () => api.getPositions() });
-  const { data: planDemo } = useQuery({ queryKey: ['plan'], queryFn: api.getPlanDemo });
+  const { data: positions = [], isLoading: positionsLoading, error: positionsError } = useQuery({
+    queryKey: ['positions'],
+    queryFn: () => api.getPositions(),
+  });
+  const { data: planDemo, isLoading: planLoading, error: planError } = useQuery({
+    queryKey: ['planDemo'],
+    queryFn: api.getPlanDemo,
+  });
   const { data: clock } = useQuery({ queryKey: ['clock'], queryFn: api.getClock });
 
   const facMap = useMemo(() => new Map(facilities.map(f => [f.id, f])), [facilities]);
-  const orders = planDemo?.orders ?? [];
+  const orders = planDemo?.orders ?? EMPTY_ORDERS;
 
   const arcs = useMemo(() =>
     orders.map(o => {
@@ -39,8 +46,17 @@ export default function MapPage() {
     <div className="flex-1 flex flex-col p-4 gap-4 min-h-0">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-800">District Overview</h1>
-        <span className="text-sm text-slate-500">{facilities.length} facilities &middot; {orders.length} active transfers</span>
+        <span className="text-sm text-slate-500">
+          {facilities.length} facilities &middot; {planError ? 'Transfers unavailable' : planLoading ? 'Loading transfers…' : `${orders.length} planned transfers`}
+        </span>
       </div>
+
+      {(planError || (positionsError && !positionsLoading)) && (
+        <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          {planError && <p>Could not load planned transfers: {planError.message}</p>}
+          {positionsError && <p>Could not load inventory positions: {positionsError.message}</p>}
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
         {tilesOk ? (

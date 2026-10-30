@@ -22,8 +22,8 @@ function confidenceChip(c: number) {
 }
 
 export default function IngestionPage() {
-  const { data: reports = [], isLoading } = useQuery({ queryKey: ['reports'], queryFn: () => api.getReports() });
-  const { data: reviews = [] } = useQuery({ queryKey: ['reviews'], queryFn: api.getReviews });
+  const { data: reports = [], isLoading, error: reportsError } = useQuery({ queryKey: ['reports'], queryFn: () => api.getReports() });
+  const { data: reviews = [], error: reviewsError } = useQuery({ queryKey: ['reviews'], queryFn: api.getReviews });
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [reviewTarget, setReviewTarget] = useState<ReviewItem | null>(null);
 
@@ -35,6 +35,13 @@ export default function IngestionPage() {
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
       <h1 className="text-xl font-semibold text-slate-800">Ingestion & Review</h1>
+      {(reportsError || reviewsError) && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {(reportsError ?? reviewsError) instanceof Error
+            ? (reportsError ?? reviewsError)?.message
+            : 'Could not load ingestion data.'}
+        </div>
+      )}
 
       {pending.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
@@ -156,7 +163,7 @@ function ReportCard({ report, expanded, onToggle }: {
   report: StockReport; expanded: boolean; onToggle: () => void;
 }) {
   const channel = report.channel ?? report.format ?? 'unknown';
-  const language = report.language ?? 'en';
+  const language = report.language;
   const hasKannada = language === 'kn' || language === 'mixed';
 
   return (
@@ -177,7 +184,8 @@ function ReportCard({ report, expanded, onToggle }: {
           <span className="text-xs text-slate-500">{shortDate(report.received_at ?? '')}</span>
           <span className={cn(
             'text-xs px-2 py-0.5 rounded-full font-medium',
-            report.status === 'processed' ? 'bg-teal-100 text-teal-700' : 'bg-slate-100 text-slate-600',
+            report.status === 'processed' ? 'bg-teal-100 text-teal-700' :
+            report.status === 'flagged' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600',
           )}>
             {report.status}
           </span>
@@ -253,7 +261,11 @@ function ReviewActions({ review, onCorrect }: { review: ReviewItem; onCorrect: (
   const queryClient = useQueryClient();
   const acceptMut = useMutation({
     mutationFn: () => api.resolveReview(review.id, 'accept'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reviews'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      void queryClient.invalidateQueries({ queryKey: ['lots'] });
+      void queryClient.invalidateQueries({ queryKey: ['positions'] });
+    },
   });
   const rejectMut = useMutation({
     mutationFn: () => api.resolveReview(review.id, 'reject'),
@@ -287,21 +299,37 @@ function ReviewActions({ review, onCorrect }: { review: ReviewItem; onCorrect: (
       >
         {rejectMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
       </button>
+      {(acceptMut.error || rejectMut.error) && (
+        <span role="alert" className="text-xs text-red-600">
+          {(acceptMut.error ?? rejectMut.error)?.message}
+        </span>
+      )}
     </>
   );
 }
 
 function ReviewModal({ review, onClose }: { review: ReviewItem; onClose: () => void }) {
   const queryClient = useQueryClient();
+  const { data: drugs = [], isLoading: drugsLoading, error: drugsError } = useQuery({
+    queryKey: ['drugs'],
+    queryFn: api.getDrugs,
+  });
   const [drugCode, setDrugCode] = useState(review.drug_code ?? '');
   const [qty, setQty] = useState(String(review.extracted_qty ?? ''));
-  const [expiry, setExpiry] = useState('');
+  const [expiry, setExpiry] = useState(review.extracted_expiry ?? '');
+  const candidateCodes = review.candidates?.length ? review.candidates : drugs.map(drug => drug.code);
+  const parsedQty = Number(qty);
 
   const correctMut = useMutation({
     mutationFn: () => api.resolveReview(review.id, 'correct', {
-      drug_code: drugCode, qty: Number(qty), expiry: expiry || undefined,
+      drug_code: drugCode, qty: parsedQty, expiry: expiry || undefined,
     }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['reviews'] }); onClose(); },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      void queryClient.invalidateQueries({ queryKey: ['lots'] });
+      void queryClient.invalidateQueries({ queryKey: ['positions'] });
+      onClose();
+    },
   });
 
   return (
@@ -311,21 +339,20 @@ function ReviewModal({ review, onClose }: { review: ReviewItem; onClose: () => v
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-slate-500 block mb-1">Drug Code</label>
-            {review.candidates && review.candidates.length > 0 ? (
-              <select value={drugCode} onChange={e => setDrugCode(e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                <option value="">Select...</option>
-                {review.candidates.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            ) : (
-              <input value={drugCode} onChange={e => setDrugCode(e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+            <label className="text-xs font-medium text-slate-500 block mb-1">Drug Code (verified catalog)</label>
+            <select value={drugCode} onChange={e => setDrugCode(e.target.value)}
+              disabled={drugsLoading || candidateCodes.length === 0}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:bg-slate-50">
+              <option value="">Select a drug code...</option>
+              {candidateCodes.map(code => <option key={code} value={code}>{code}</option>)}
+            </select>
+            {drugsError && candidateCodes.length === 0 && (
+              <p role="alert" className="text-xs text-red-600 mt-1">Could not load verified drug codes: {drugsError.message}</p>
             )}
           </div>
           <div>
             <label className="text-xs font-medium text-slate-500 block mb-1">Quantity</label>
-            <input type="number" value={qty} onChange={e => setQty(e.target.value)}
+            <input type="number" min="1" step="1" value={qty} onChange={e => setQty(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
@@ -336,8 +363,11 @@ function ReviewModal({ review, onClose }: { review: ReviewItem; onClose: () => v
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
+          {correctMut.error && (
+            <p role="alert" className="mr-auto text-xs text-red-600">{correctMut.error.message}</p>
+          )}
           <button onClick={onClose} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-          <button onClick={() => correctMut.mutate()} disabled={correctMut.isPending}
+          <button onClick={() => correctMut.mutate()} disabled={correctMut.isPending || !drugCode || !Number.isInteger(parsedQty) || parsedQty <= 0 || !expiry}
             className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 flex items-center gap-1">
             {correctMut.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
             Save Correction

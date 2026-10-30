@@ -25,12 +25,20 @@ export default function PlanPage() {
   const queryClient = useQueryClient();
   const { data: demo, isLoading } = useQuery<PlanDemo>({ queryKey: ['planDemo'], queryFn: api.getPlanDemo });
   const { data: facilities = [] } = useQuery({ queryKey: ['facilities'], queryFn: api.getFacilities });
-  const { data: benchmark } = useQuery({ queryKey: ['benchmark'], queryFn: api.getBenchmark });
+  const { data: benchmark } = useQuery({
+    queryKey: ['benchmark', demo?.plan?.id],
+    queryFn: () => api.getBenchmark(demo?.plan?.id),
+    enabled: !!demo?.plan?.id,
+  });
   const [expandedDst, setExpandedDst] = useState<string | null>(null);
 
   const runMut = useMutation({
     mutationFn: () => api.runPlan('live'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['planDemo'] }),
+    onSuccess: (result) => {
+      queryClient.setQueryData(['planDemo'], result);
+      void queryClient.invalidateQueries({ queryKey: ['orders'] });
+      void queryClient.invalidateQueries({ queryKey: ['benchmark'] });
+    },
   });
   const runOptimizerButton = (
     <button onClick={() => runMut.mutate()} disabled={runMut.isPending}
@@ -48,9 +56,48 @@ export default function PlanPage() {
           <h1 className="text-xl font-semibold text-slate-800">Redistribution Plan</h1>
           {runOptimizerButton}
         </div>
-        <div role="status" className="flex-1 flex items-center justify-center text-slate-500 p-8">
-          No saved plan data. Run the optimizer to generate a redistribution plan.
-        </div>
+        {runMut.error && (
+          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {runMut.error.message}
+          </div>
+        )}
+        {demo?.orders.length ? (
+          <>
+            <p className="text-sm text-slate-500">
+              Showing {demo.orders.length} saved transfer orders. Plan solver metrics are not available for this saved run.
+            </p>
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-x-auto">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead><tr className="bg-slate-50 text-xs text-slate-500 uppercase">
+                  <th className="text-left px-4 py-2 font-medium">DTA</th>
+                  <th className="text-left px-4 py-2 font-medium">Drug</th>
+                  <th className="text-left px-4 py-2 font-medium">Source → Destination</th>
+                  <th className="text-right px-4 py-2 font-medium">Qty</th>
+                  <th className="text-center px-4 py-2 font-medium">Status</th>
+                  <th className="text-center px-4 py-2 font-medium"></th>
+                </tr></thead>
+                <tbody>{demo.orders.map(order => (
+                  <tr key={order.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2 font-mono text-xs">{order.dta_number ?? 'Not issued'}</td>
+                    <td className="px-4 py-2">{order.drug_name}</td>
+                    <td className="px-4 py-2 text-slate-600">{order.src_facility_id} → {order.dst_facility_id}</td>
+                    <td className="px-4 py-2 text-right font-mono">{order.qty}</td>
+                    <td className="px-4 py-2 text-center">{order.status}</td>
+                    <td className="px-4 py-2 text-center">
+                      {demo.persisted !== false && (
+                        <Link to={`/orders/${order.id}`} className="text-xs text-teal-600 hover:text-teal-800">View</Link>
+                      )}
+                    </td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div role="status" className="flex-1 flex items-center justify-center text-slate-500 p-8">
+            No saved plan data. Run the optimizer to generate a redistribution plan.
+          </div>
+        )}
       </div>
     );
   }
@@ -71,6 +118,19 @@ export default function PlanPage() {
         <h1 className="text-xl font-semibold text-slate-800">Redistribution Plan</h1>
         {runOptimizerButton}
       </div>
+
+      {runMut.error && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {runMut.error.message}
+        </div>
+      )}
+      {demo.persisted === false && (
+        <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          {demo.persistence_error
+            ? `The optimizer produced this plan, but order persistence could not be verified: ${demo.persistence_error}`
+            : 'The optimizer produced this plan, but core-api did not save its orders. Review, approval, and order-detail actions are unavailable for this run.'}
+        </div>
+      )}
 
       {/* Solver tier + violations */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -192,7 +252,7 @@ export default function PlanPage() {
                     <tbody>
                       {dstOrders.map(o => (
                         <tr key={o.id} className="border-t border-slate-50 hover:bg-slate-50">
-                          <td className="px-4 py-2 text-xs font-mono text-slate-600">{o.dta_number}</td>
+                          <td className="px-4 py-2 text-xs font-mono text-slate-600">{o.dta_number ?? 'Not issued'}</td>
                           <td className="px-4 py-2">
                             <span className="font-medium">{o.drug_name}</span>
                             {o.temperature_req === 'cold_chain' && <Snowflake className="w-3 h-3 text-blue-500 inline ml-1" />}
@@ -209,9 +269,11 @@ export default function PlanPage() {
                             )}>{o.status}</span>
                           </td>
                           <td className="px-4 py-2 text-center">
-                            <Link to={`/orders/${o.id}`} className="inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800 font-medium">
-                              View <ExternalLink className="w-3 h-3" />
-                            </Link>
+                            {demo.persisted !== false && (
+                              <Link to={`/orders/${o.id}`} className="inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800 font-medium">
+                                View <ExternalLink className="w-3 h-3" />
+                              </Link>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -225,11 +287,11 @@ export default function PlanPage() {
       </div>
 
       {/* Regret analysis */}
-      {demo.regret.length > 0 && (
+      {(demo.regret?.length ?? 0) > 0 && (
         <>
           <h2 className="text-lg font-semibold text-slate-700 mt-2">Regret Analysis</h2>
           <div className="bg-white rounded-lg border border-slate-200 p-4 space-y-3">
-            {demo.regret.map((r, i) => (
+            {demo.regret?.map((r, i) => (
               <div key={i} className="flex items-start gap-3 text-sm">
                 <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                 <div>

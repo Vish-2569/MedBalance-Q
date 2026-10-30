@@ -14,10 +14,23 @@ const SOLVER_COLORS: Record<string, string> = {
 };
 
 export default function BenchmarkPage() {
-  const { data: bm, isLoading } = useQuery<Benchmark>({ queryKey: ['benchmark'], queryFn: api.getBenchmark });
+  const { data: demo, isLoading: planLoading } = useQuery({ queryKey: ['planDemo'], queryFn: api.getPlanDemo });
+  const { data: bm, isLoading, error } = useQuery<Benchmark | null>({
+    queryKey: ['benchmark', demo?.plan?.id],
+    queryFn: () => api.getBenchmark(demo?.plan?.id),
+    enabled: !!demo?.plan?.id,
+  });
 
-  if (isLoading) return <div className="flex-1 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
-  if (!bm) return <div className="flex-1 flex items-center justify-center text-slate-400">No benchmark data available.</div>;
+  if (planLoading || isLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-2 text-slate-400">
+        <Loader2 className="w-6 h-6 animate-spin" />
+        <span className="text-sm">Loading solver benchmarks; this may take several seconds.</span>
+      </div>
+    );
+  }
+  if (error) return <div role="alert" className="flex-1 flex items-center justify-center text-red-600">{error.message}</div>;
+  if (!bm) return <div className="flex-1 flex items-center justify-center text-slate-400">Run the optimizer in this session to load its benchmark data.</div>;
 
   const rows = bm.benchmark;
   const gap = bm.gap_qubo_to_milp_pct;
