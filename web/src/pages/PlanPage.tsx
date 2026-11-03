@@ -146,6 +146,11 @@ export default function PlanPage() {
         )}>
           <ShieldCheck className="w-3 h-3" />
           Violations: {plan.violations ?? 0}
+          {(() => {
+            const meta = plan.solver_meta as Record<string, number> | undefined;
+            const raw = (meta?.violations ?? 0) + (meta?.trimmed ?? 0) + (meta?.dropped ?? 0);
+            return raw > 0 ? ` (${raw} repaired)` : ' after validation';
+          })()}
         </span>
       </div>
 
@@ -172,7 +177,7 @@ export default function PlanPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard icon={Package} label="Transfers" value={String(plan.transfers)} />
         <KpiCard icon={TrendingDown} label="Shortage Reduction" value={formatPct(plan.shortage_reduction)} color="text-teal-600" />
-        <KpiCard icon={AlertTriangle} label="Expiry Avoided" value={`${plan.expiry_avoided} units`} color="text-amber-600" />
+        <KpiCard icon={AlertTriangle} label="At-risk units redistributed" value={`${plan.expiry_avoided} units`} color="text-amber-600" />
         <KpiCard icon={Timer} label="Cost" value={formatINR(plan.cost_inr)} />
       </div>
 

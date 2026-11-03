@@ -175,6 +175,13 @@ def _patch_db(db_engine, monkeypatch):
     monkeypatch.setattr(db_mod, "_session_factory", get_session_factory(db_engine))
 
 
+@pytest.fixture(autouse=True)
+def _patch_hmac_secret(monkeypatch):
+    """Ensure QR_HMAC_SECRET is set so require_hmac_secret() doesn't raise."""
+    from medbal_common.settings import settings
+    monkeypatch.setattr(settings, "QR_HMAC_SECRET", "test-hmac-secret-for-custody-tests")
+
+
 @pytest.fixture
 def seed_data(db_engine):
     """Insert minimal seed data for testing."""

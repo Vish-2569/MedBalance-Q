@@ -80,9 +80,9 @@ export default function ResultsPage() {
         />
         <MetricCard
           icon={Package}
-          label="Expiry Avoided"
+          label="At-risk units redistributed"
           value={plan ? `${plan.expiry_avoided.toLocaleString()} units` : 'Unavailable'}
-          sub={plan ? `Estimated cost: ${formatINR(plan.cost_inr)}` : undefined}
+          sub={plan ? `Moved before expiry · Cost: ${formatINR(plan.cost_inr)}` : undefined}
           color="text-amber-600"
         />
       </div>

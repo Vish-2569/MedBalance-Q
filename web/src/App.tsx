@@ -15,6 +15,14 @@ import ScenariosPage from '@/pages/ScenariosPage';
 import OrderDetailPage from '@/pages/OrderDetailPage';
 import ScanPage from '@/pages/ScanPage';
 
+function SimDataBanner() {
+  return (
+    <div className="shrink-0 bg-slate-100 border-t border-slate-200 px-3 py-1 text-center text-[11px] text-slate-400 tracking-wide select-none">
+      Simulated district data — not connected to live systems
+    </div>
+  );
+}
+
 function ExcursionBanner() {
   const events = useLiveEvents(50);
   const excursions = events.filter(e => e.type === 'coldchain.alert' && (e.data as Record<string, unknown>).severity === 'excursion');
@@ -35,8 +43,8 @@ export default function App() {
     <div className="h-screen flex flex-col overflow-hidden">
       <Routes>
         {/* Standalone scan page — no sidebar/navbar */}
-        <Route path="/scan" element={<ScanPage />} />
-        <Route path="/scan/:token" element={<ScanPage />} />
+        <Route path="/scan" element={<><ScanPage /><SimDataBanner /></>} />
+        <Route path="/scan/:token" element={<><ScanPage /><SimDataBanner /></>} />
 
         {/* Main layout with sidebar */}
         <Route path="*" element={
@@ -60,6 +68,7 @@ export default function App() {
               </main>
             </div>
             <CopilotPanel />
+            <SimDataBanner />
           </>
         } />
       </Routes>

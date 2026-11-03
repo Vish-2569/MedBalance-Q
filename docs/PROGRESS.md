@@ -1732,3 +1732,80 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
 
 ### Open issues
 - The configured Gemini project has exhausted its free-tier daily request quota; genuine LLM answers require available quota or updated billing. The app now surfaces that provider response instead of hiding it.
+
+## Runtime — ingestion extraction and demo reports (2026-10-30)
+
+### Done
+- Fixed pushed H3/H4 JSON reports to extract their message body and report date instead of stringifying the entire payload.
+- Kept GenAI as the first extraction path and added a grounded deterministic fallback for explicit report values when GenAI is unavailable or returns no usable items.
+- Added reviewable synthetic reports through the same ingestion, extraction, grounding, and review-gate pipeline; the reports are clearly marked as demo data and can be reloaded idempotently.
+- Added automatic sample loading when the report list has no extracted inventory, alongside separate controls for loading samples and pulling connected hospital reports.
+- Bundled the drug master catalog in the ingest-AI image, fixed ISO expiry parsing, and made demo seeding safe against simultaneous requests.
+- Corrected H1/H2 pull paths to the simulators' actual FHIR and CSV export endpoints, and surfaced report extraction/review-gate errors in the UI.
+- Added regression coverage for JSON push parsing, fallback extraction, pull URLs, and idempotent demo seeding.
+
+### How to verify
+1. `python -m pytest services/ingest_ai/tests/test_adapters.py services/ingest_ai/tests/test_extraction.py services/ingest_ai/tests/test_api.py -k "not test_health" -q`.
+2. `cd web; npm run build; npm run lint`.
+3. Open Ingestion with an empty report list; two synthetic sample reports should appear with extracted rows and demo/fallback labels. The real hospital pull remains available separately.
+
+### Open issues
+- Gemini quota exhaustion remains an external provider limitation. The deterministic fallback extracts only explicit values and labels those results; real GenAI extraction resumes when provider quota is available.
+- The AI Health page now shows clearly labeled illustrative fixture metrics when the live 24-hour call count is zero; real telemetry takes precedence as soon as calls are recorded.
+
+## Runtime — core API event-stream integration (2026-10-30)
+
+### Done
+- Moved Redis stream reads out of the core API's async event loop, preventing open browser event streams from stalling health checks and frontend API requests.
+- Replaced the shared Redis consumer group with independent stream cursors so each connected browser receives its own copy of live events.
+- Updated the custody test token helper to use the configured QR HMAC secret, keeping test-generated QR tokens consistent with the service configuration.
+
+### How to verify
+1. `python -m pytest services/core_api/tests -q`.
+2. `docker compose build core-api` and `docker compose up -d --no-deps core-api`.
+3. Check `/api/core/health`, `/api/core/facilities`, and `/api/core/positions` while the browser is connected; requests should return without waiting on the SSE polling interval.
+
+## Runtime — Copilot provider-outage fallback (2026-10-30)
+
+### Done
+- Copilot now falls back to a read-only domain lookup when the live LLM provider fails, and clearly labels the answer as a demo fallback rather than a generated model response.
+- Supported fallback questions use current tool results for district overview, facility/drug stock, insulin feasibility, order details/audit, cold-chain readings, and facility policies.
+- If live domain data is also unavailable, the fallback can use illustrative fixtures, explicitly labeled as sample data in both the answer and tool details.
+- Copilot SSE now forwards tool results to the UI so the evidence behind tool-grounded responses is inspectable.
+
+### How to verify
+1. `python -m pytest services/genai/tests/test_copilot.py -q`.
+2. Ask Copilot about insulin stock at H1 or why Hesaraghatta did not receive insulin while the provider quota is unavailable. The answer should be visibly labeled as a fallback and show the corresponding tool result.
+
+### Known limitation
+- This fallback does not replace a live LLM: unsupported free-form questions still explain the provider outage and list supported data lookups. Gemini responses resume when the configured provider is available.
+
+---
+
+## Freeze issues (from docs/JUDGE_AUDIT.md)
+
+Items identified during judge audit. Fixes noted inline.
+
+### Documentation gaps
+1. ~~**RTM empty**~~ — **FIXED**: `docs/RTM.md` now contains 36 requirements mapped to implementations, tests, and evidence. 26 Pass, 10 Partial (with documented caveats), 0 Pending.
+2. **Demo script placeholder** — `docs/DEMO_SCRIPT.md` has no real content.
+
+### Honesty / disclosure
+3. **QpiAI tiers 1-3 never ran** — All 983 evidence files show tier 4 only. Solver badges in UI imply availability.
+4. **AI eval circular validation** — `label_helper.py` pre-fills from current extractor; 100% scores are self-referential.
+5. **Gemini quota exhausted** — Live LLM paths (extraction, copilot, forecast context, narration) all fell back to deterministic. No live LLM evidence available.
+6. **Greedy beats QUBO** — Replay results show simpler policy outperforms on the primary KPI (89% vs 52% stockout reduction). UI should disclose this trade-off.
+7. ~~**"Expiry Avoided" metric misleading**~~ — **FIXED**: Renamed to "At-risk units redistributed" on both PlanPage and ResultsPage. ResultsPage subtitle changed from "Estimated cost" to "Moved before expiry · Cost: ₹X". Label no longer implies waste was actually prevented.
+8. ~~**Violations badge hides repair work**~~ — **FIXED**: Badge now shows "Violations: 0 (N repaired)" when solver_meta records raw violations/trimmed/dropped, or "Violations: 0 after validation" when counts are zero. Fixture updated to show 1 violation + 1 trimmed to demonstrate the feature.
+9. ~~**Fixture data contradicts replay evidence**~~ — **FIXED**: `web/src/fixtures/index.ts` `resultMetrics` and ablation table now use exact numbers from `evidence/eval_reports/replay_20261030_035113.json`. Correct ranking: Phone-call (89%) > Greedy F4 (86%) > QUBO (52%) > MILP (26%) > No transfer (0%).
+10. ~~**Fixture copilot uses non-existent tools**~~ — **FIXED**: Replaced `check_feasibility` → `why_not`, `get_positions` → `get_stock_position`, `get_coldchain` → `get_coldchain_status`, `get_benchmark` → `compare_policies`. Tool args and results now match real executor shapes. All fixture responses prefixed with `[Demo response]`. Fabricated "97% of MILP optimality" and "72%" claims replaced with replay-sourced numbers.
+11. ~~**Fixture benchmark numbers fabricated**~~ — **FIXED**: Benchmark fixture now sourced from evidence files: QUBO energy=21.15 from `evidence/qpiai_runs/20261030T013921_bec2dc5f28cb.json`, Max-Cut tier=exact-brute-force/cut=3.40 from the `_mc_` evidence, shortage_reduction from replay. `gap_qubo_to_milp_pct` set to `null` (no single-snapshot MILP objective in evidence). Zoning tier corrected from fake "qsv-local" to real "exact-brute-force".
+12. ~~**AI Health fixture eval scores don't match evidence**~~ — **FIXED**: Changed eval_scores from fabricated {0.91, 0.87, 0.94} to evidence-sourced {1.0, 1.0, 1.0} per `evidence/eval_reports/ai_20261030T041904.json`. Added "(demo)" suffix to all stat card values when showing demo metrics. Added "offline / deterministic" badge on eval scores section when using demo data.
+13. ~~**No "simulated data" banner on web UI**~~ — **FIXED**: Added persistent `SimDataBanner` component in `App.tsx` showing "Simulated district data — not connected to live systems" at the bottom of every page (main layout and standalone scan page). Subtle style: 11px, slate-400, border-top, non-selectable.
+
+### Security
+12. **No auth on any endpoint** — Approve, reject, scan, resolve, reset all unauthenticated.
+13. ~~**HMAC dev-secret default**~~ — **FIXED**: Removed all `or "dev-secret"` fallbacks from `custody.py` and `plans.py`. Added `require_hmac_secret()` to settings that raises `RuntimeError` with clear message if `QR_HMAC_SECRET` env var is missing. `core-api` validates at startup (non-fixture mode). Tests use a patched test secret via conftest autouse fixture.
+14. **Auto-upsert without human review** — Clean LLM-extracted items go straight to stock DB.
+15. **Scan qty unbounded** — User-supplied quantity on custody scan not validated against order qty.
+16. **Approval actor self-declared** — Audit trail can be spoofed via request body.

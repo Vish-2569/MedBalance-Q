@@ -7,6 +7,7 @@ if settings.USE_FIXTURES:
     from medbal_common.fixtures import serve
     serve(app, "core-api")
 else:
+    settings.require_hmac_secret()
     from .routers import master, lots, positions, snapshot, plans, orders
     from .routers import provenance, audit_routes, custody, events
 

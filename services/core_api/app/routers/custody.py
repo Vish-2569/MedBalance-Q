@@ -47,7 +47,7 @@ COLDCHAIN_URL = "http://coldchain:8006"
 
 
 def _verify_token(token: str, order_id: str) -> bool:
-    secret = settings.QR_HMAC_SECRET or "dev-secret"
+    secret = settings.require_hmac_secret()
     expected = hmac.new(secret.encode(), order_id.encode(), hashlib.sha256).hexdigest()
     return hmac.compare_digest(token, expected)
 

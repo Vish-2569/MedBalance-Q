@@ -12,9 +12,11 @@ from sqlalchemy import text
 
 from medbal_common.db import session_scope
 from medbal_common import audit
+from medbal_common.settings import settings
 
 
-def _make_token(order_id: str, secret: str = "dev-secret") -> str:
+def _make_token(order_id: str, secret: str | None = None) -> str:
+    secret = secret or settings.QR_HMAC_SECRET
     return hmac_mod.new(secret.encode(), order_id.encode(), hashlib.sha256).hexdigest()
 
 

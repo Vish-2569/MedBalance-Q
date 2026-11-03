@@ -100,8 +100,8 @@ export const planDemo: PlanDemo = {
       energy: -4.82,
       n_vars: 19,
       time_ms: 135.86,
-      violations: 0,
-      trimmed: 0,
+      violations: 1,
+      trimmed: 1,
       dropped: 0,
       attempts: [
         { tier: 'qpiai-platform', error: 'QPIAI_OPT_URL or QPIAI_OPT_TOKEN not set' },
@@ -163,23 +163,28 @@ export const coldchain: ColdchainStatus[] = [
   },
 ];
 
+// Benchmark fixture sourced from evidence/ files:
+//   Solver runs: evidence/qpiai_runs/20261030T013921_bec2dc5f28cb.json (QUBO energy=21.15, tier=greedy-descent)
+//   Max-Cut:     evidence/qpiai_runs/20261030T013921_mc_88b16c1ecc75.json (tier=exact-brute-force, cut=3.40)
+//   Replay:      evidence/eval_reports/replay_20261030_035113.json (20-seed means for shortage/trips/cost)
+// "objective" is QUBO Hamiltonian H — only meaningful for QUBO/MILP solvers; 0 for baselines.
 export const benchmark: Benchmark = {
   plan_id: 'plan-demo-001',
   benchmark: [
     { solver: 'no-transfer', objective: 0, shortage_reduction: 0, expiry_avoided_inr: 0, waste_moved: 0, trips: 0, time_ms: 0 },
-    { solver: 'greedy-phone-call', objective: 2.15, shortage_reduction: 0.45, expiry_avoided_inr: 850, waste_moved: 320, trips: 4, time_ms: 12 },
-    { solver: 'greedy-f4', objective: 3.68, shortage_reduction: 0.62, expiry_avoided_inr: 1420, waste_moved: 498, trips: 5, time_ms: 28 },
-    { solver: 'qubo (greedy-descent)', objective: 4.82, shortage_reduction: 0.72, expiry_avoided_inr: 1890, waste_moved: 618, trips: 6, time_ms: 340 },
-    { solver: 'milp (OPTIMAL)', objective: 4.97, shortage_reduction: 0.74, expiry_avoided_inr: 1950, waste_moved: 625, trips: 6, time_ms: 1250 },
+    { solver: 'greedy-phone-call', objective: 0, shortage_reduction: 0.890, expiry_avoided_inr: 2744, waste_moved: 8478, trips: 293, time_ms: 1 },
+    { solver: 'greedy-f4', objective: 0, shortage_reduction: 0.859, expiry_avoided_inr: 2744, waste_moved: 8437, trips: 285, time_ms: 1 },
+    { solver: 'qubo (greedy-descent)', objective: 21.15, shortage_reduction: 0.521, expiry_avoided_inr: 2744, waste_moved: 45360, trips: 246, time_ms: 15968 },
+    { solver: 'milp (OPTIMAL)', objective: 0, shortage_reduction: 0.258, expiry_avoided_inr: 2744, waste_moved: 15265, trips: 123, time_ms: 24 },
   ],
-  gap_qubo_to_milp_pct: 3.02,
+  gap_qubo_to_milp_pct: null,
   zoning: {
     maxcut: {
       partition: { W0: 0, H1: 0, H2: 0, H3: 1, H4: 1 },
-      cut_value: 2.85,
+      cut_value: 3.40,
       intra_zone_cost: 1240,
-      tier: 'qsv-local',
-      approx_ratio: 0.95,
+      tier: 'exact-brute-force',
+      approx_ratio: 1.0,
     },
     kmeans: {
       partition: { W0: 0, H1: 0, H2: 0, H3: 1, H4: 0 },
@@ -188,7 +193,7 @@ export const benchmark: Benchmark = {
     },
     exact: {
       partition: { W0: 0, H1: 0, H2: 0, H3: 1, H4: 1 },
-      cut_value: 3.00,
+      cut_value: 3.40,
       intra_zone_cost: 1200,
     },
   },
@@ -299,6 +304,9 @@ export const provenance: Provenance = {
 
 export const auditVerify: AuditVerify = { ok: true, entries: 47 };
 
+// AI Health demo metrics — shown only when total_calls === 0 (no live LLM traffic).
+// Eval scores from evidence/eval_reports/ai_20261030T041904.json (offline/deterministic eval).
+// Call counts and latency are illustrative; they do not come from a recorded session.
 export const aiHealth: AIHealthData = {
   status: 'healthy',
   provider: 'Gemini',
@@ -317,25 +325,27 @@ export const aiHealth: AIHealthData = {
     { id: 'deviation_summary', version: 1, calls: 8 },
     { id: 'copilot_qa', version: 1, calls: 44 },
   ],
-  eval_scores: { extract_stock: 0.91, anomaly_explain: 0.87, narrate_order: 0.94 },
+  eval_scores: { extract_stock: 1.0, anomaly_explain: 1.0, narrate_order: 1.0 },
 };
 
+// Result metrics from evidence/eval_reports/replay_20261030_035113.json
+// 20 seeds × 28 days, baseline (A) = 786.0 stockout-days
 export const resultMetrics: ResultMetrics = {
-  stockout_days_before: 42,
-  stockout_days_after: 12,
-  expired_value_inr: 18500,
-  expired_value_avoided_inr: 14200,
-  waste_moved_units: 618,
-  waste_moved_pct: 0.82,
-  shortage_reduction: 0.72,
-  ci_lower: 0.65,
-  ci_upper: 0.79,
+  stockout_days_before: 786,
+  stockout_days_after: 377,
+  expired_value_inr: 2744,
+  expired_value_avoided_inr: 0,
+  waste_moved_units: 45360,
+  waste_moved_pct: 0.52,
+  shortage_reduction: 0.521,
+  ci_lower: 0.513,
+  ci_upper: 0.528,
   ablation: [
-    { variant: 'Full QUBO + Zoning', shortage_reduction: 0.72, expiry_avoided: 215, cost_inr: 1250, note: 'Production config' },
-    { variant: 'QUBO no zoning', shortage_reduction: 0.68, expiry_avoided: 198, cost_inr: 1480, note: 'Without Max-Cut zone partition' },
-    { variant: 'Greedy F4', shortage_reduction: 0.62, expiry_avoided: 142, cost_inr: 980, note: 'Simple feasibility-ranked greedy' },
-    { variant: 'Phone-call baseline', shortage_reduction: 0.45, expiry_avoided: 85, cost_inr: 750, note: 'Manual redistribution estimate' },
-    { variant: 'No transfer', shortage_reduction: 0.0, expiry_avoided: 0, cost_inr: 0, note: 'Status quo — all waste expires' },
+    { variant: 'B — Phone-call greedy', shortage_reduction: 0.890, expiry_avoided: 8478, cost_inr: 58005, note: 'Best stockout reduction (F1–F3 only, may move waste)' },
+    { variant: 'C — Greedy F4', shortage_reduction: 0.859, expiry_avoided: 8437, cost_inr: 57605, note: 'Full feasibility, targeted allocation' },
+    { variant: 'D — QUBO (greedy-descent)', shortage_reduction: 0.521, expiry_avoided: 45360, cost_inr: 80354, note: 'Multi-objective Hamiltonian; moves 5× more at-risk stock' },
+    { variant: 'E — MILP (CP-SAT)', shortage_reduction: 0.258, expiry_avoided: 15265, cost_inr: 41128, note: 'Exact Hamiltonian optimum; fewer trips, lower cost' },
+    { variant: 'A — No transfer', shortage_reduction: 0.0, expiry_avoided: 0, cost_inr: 0, note: 'Status quo baseline: 786 stockout-days' },
   ],
 };
 

@@ -29,7 +29,7 @@ def _make_dta_number(seq: int, year: int) -> str:
 
 
 def _make_qr_token(order_id: str) -> str:
-    secret = settings.QR_HMAC_SECRET or "dev-secret"
+    secret = settings.require_hmac_secret()
     return hmac.new(secret.encode(), order_id.encode(), hashlib.sha256).hexdigest()
 
 

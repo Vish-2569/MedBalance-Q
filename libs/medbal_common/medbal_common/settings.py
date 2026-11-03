@@ -32,6 +32,15 @@ class Settings(BaseSettings):
 
     QR_HMAC_SECRET: str = ""
     SIM_SEED: int = 42
+
+    def require_hmac_secret(self) -> str:
+        if not self.QR_HMAC_SECRET:
+            raise RuntimeError(
+                "QR_HMAC_SECRET is not set. "
+                "Set it in .env or as an environment variable. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        return self.QR_HMAC_SECRET
     SIM_DAY_SECONDS: int = 30
     SIM_START_DATE: str = "2026-11-01"
 
