@@ -3,13 +3,19 @@ import type {
   TransferOrder, PlanDemo, SimClock, Scenario,
   ColdchainStatus, Benchmark, StockReport, ReviewItem,
   CustodyEvent, AuditVerify, AIHealthData, OrderDetail,
-  Provenance, RegretEntry, PlanRunResponse,
+  Provenance, RegretEntry, PlanRunResponse, PullReportsResult, DemoSeedResult,
 } from '@/types/domain';
 
 import * as fixtures from '@/fixtures';
+import { getToken } from '@/lib/auth';
 
 const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === '1';
 const PLAN_CACHE_KEY = 'medbalance.latestPlan.v1';
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 interface RawReportItem {
   drug_code?: string | null;
@@ -30,7 +36,11 @@ interface RawReport {
   format: string;
   raw_text?: string | null;
   items: RawReportItem[];
-  gate?: { flagged?: number };
+  extraction_method?: StockReport['extraction_method'];
+  extraction_warning?: string;
+  is_demo?: boolean;
+  gate_error?: string;
+  gate?: { clean?: number; flagged?: number; upserted?: number };
 }
 
 interface RawReview {
@@ -84,7 +94,7 @@ interface RawProvenanceBundle {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`/api${path}`);
+  const res = await fetch(`/api${path}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await responseError('GET', path, res));
   return res.json() as Promise<T>;
 }
@@ -92,7 +102,7 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await responseError('POST', path, res));
@@ -100,8 +110,22 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 }
 
 async function responseError(method: string, path: string, res: Response): Promise<string> {
-  const detail = await res.text();
-  return `${method} ${path}: ${res.status}${detail ? ` - ${detail}` : ''}`;
+  let message = '';
+  try {
+    const body = await res.json();
+    if (typeof body.detail === 'string') {
+      message = body.detail;
+    } else if (Array.isArray(body.detail)) {
+      message = body.detail.map((e: { msg?: string; loc?: string[] }) =>
+        e.msg ? `${(e.loc ?? []).join('.')}: ${e.msg}` : JSON.stringify(e),
+      ).join('; ');
+    } else if (typeof body.error === 'string') {
+      message = body.error;
+    }
+  } catch {
+    message = await res.text().catch(() => '');
+  }
+  return `${method} ${path}: ${res.status}${message ? ` — ${message}` : ''}`;
 }
 
 function mapReport(raw: RawReport): StockReport {
@@ -111,7 +135,11 @@ function mapReport(raw: RawReport): StockReport {
     received_at: raw.reported_at,
     format: raw.format,
     channel: raw.format,
-    status: raw.gate ? (raw.gate.flagged ? 'flagged' : 'processed') : 'received',
+    status: raw.items.length === 0
+      ? 'received'
+      : raw.gate?.flagged
+        ? 'flagged'
+        : 'processed',
     items: raw.items.map(item => ({
       ...item,
       drug_name: item.drug_name ?? item.drug_name_raw,
@@ -119,6 +147,10 @@ function mapReport(raw: RawReport): StockReport {
     })),
     anomalies: raw.items.flatMap(item => item.flags ?? []),
     raw_text: raw.raw_text ?? undefined,
+    is_demo: raw.is_demo,
+    extraction_method: raw.extraction_method,
+    extraction_warning: raw.extraction_warning,
+    gate_error: raw.gate_error,
   };
 }
 
@@ -312,7 +344,7 @@ export const api = {
       alert('Voucher download not available in fixture mode.');
       return;
     }
-    const res = await fetch(`/api/genai/dta/${orderId}/pdf`);
+    const res = await fetch(`/api/genai/dta/${orderId}/pdf`, { headers: authHeaders() });
     if (!res.ok) throw new Error(`Voucher download failed: ${res.status}`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -322,6 +354,11 @@ export const api = {
     a.click();
     URL.revokeObjectURL(url);
   },
+
+  resolveQrToken: (token: string): Promise<TransferOrder> =>
+    USE_FIXTURES
+      ? Promise.resolve(fixtures.orders.find(o => o.id === token || o.dta_number === token) ?? (() => { throw new Error('Order not found'); })())
+      : post('/core/orders/resolve-qr-token', { token }),
 
   approveOrder: (id: string): Promise<TransferOrder> =>
     USE_FIXTURES
@@ -368,17 +405,22 @@ export const api = {
     return planDemo;
   },
 
-  getClock: (): Promise<SimClock> =>
-    USE_FIXTURES ? Promise.resolve(fixtures.clock) : get('/sim/clock'),
+  getClock: (): Promise<SimClock> => {
+    if (USE_FIXTURES) {
+      const today = new Date().toISOString().slice(0, 10);
+      return Promise.resolve({ ...fixtures.clock, sim_date: today, sim_time: new Date().toISOString() });
+    }
+    return get('/sim/clock');
+  },
 
   startClock: (): Promise<SimClock> =>
-    USE_FIXTURES ? Promise.resolve({ ...fixtures.clock, running: true }) : post('/sim/clock/start'),
+    USE_FIXTURES ? Promise.resolve({ ...fixtures.clock, sim_date: new Date().toISOString().slice(0, 10), running: true }) : post('/sim/clock/start'),
 
   pauseClock: (): Promise<SimClock> =>
-    USE_FIXTURES ? Promise.resolve({ ...fixtures.clock, running: false }) : post('/sim/clock/pause'),
+    USE_FIXTURES ? Promise.resolve({ ...fixtures.clock, sim_date: new Date().toISOString().slice(0, 10), running: false }) : post('/sim/clock/pause'),
 
   setSpeed: (speed: number): Promise<SimClock> =>
-    USE_FIXTURES ? Promise.resolve({ ...fixtures.clock, speed }) : post('/sim/clock/speed', { speed }),
+    USE_FIXTURES ? Promise.resolve({ ...fixtures.clock, sim_date: new Date().toISOString().slice(0, 10), speed }) : post('/sim/clock/speed', { speed }),
 
   getScenarios: (): Promise<Scenario[]> =>
     USE_FIXTURES ? Promise.resolve(fixtures.scenarios) : get('/sim/scenarios'),
@@ -406,6 +448,33 @@ export const api = {
     USE_FIXTURES
       ? Promise.resolve(fixtures.reviews)
       : get<RawReview[]>('/ingest/reviews').then(reviews => reviews.map(mapReview)),
+
+  pullReports: (): Promise<PullReportsResult> =>
+    USE_FIXTURES
+      ? Promise.resolve({
+        triggered: 2,
+        facilities: ['H1', 'H2'],
+        reports: fixtures.reports.slice(0, 2).map(report => ({
+          id: report.id,
+          facility_code: report.facility_code,
+          items: report.items.length,
+        })),
+        errors: [],
+      })
+      : post<PullReportsResult>('/ingest/pull/run'),
+
+  seedDemoReports: (): Promise<DemoSeedResult> =>
+    USE_FIXTURES
+      ? Promise.resolve({
+        triggered: fixtures.reports.length,
+        reports: fixtures.reports.map(report => ({
+          id: report.id,
+          facility_code: report.facility_code,
+          items: report.items.length,
+          extraction_method: report.extraction_method,
+        })),
+      })
+      : post<DemoSeedResult>('/ingest/demo/seed'),
 
   resolveReview: (id: string, action: 'accept' | 'reject' | 'correct', correction?: { drug_code?: string; qty?: number; expiry?: string }): Promise<ReviewItem> =>
     USE_FIXTURES

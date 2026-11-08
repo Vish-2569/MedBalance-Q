@@ -10,6 +10,7 @@ dependencies = [
     "qpiai-quantum>=0.7.5",
     "ortools>=9.15.6755",
     "networkx>=3.2",
+    "dwave-neal>=0.6",
 ]
 
 [project.optional-dependencies]

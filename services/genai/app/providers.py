@@ -36,6 +36,23 @@ class LLMProvider(ABC):
     def name(self) -> str: ...
 
 
+def _openai_tools_to_gemini(tools: list[dict[str, Any]], types: Any) -> list[Any]:
+    declarations = []
+    for tool in tools:
+        fn = tool.get("function", tool)
+        name = fn.get("name", "")
+        desc = fn.get("description", "")
+        params = fn.get("parameters", {})
+        declarations.append(types.FunctionDeclaration(
+            name=name,
+            description=desc,
+            parameters=params if params else None,
+        ))
+    if not declarations:
+        return []
+    return [types.Tool(function_declarations=declarations)]
+
+
 class GeminiProvider(LLMProvider):
     def __init__(self, api_key: str):
         from google import genai
@@ -73,9 +90,14 @@ class GeminiProvider(LLMProvider):
         }
         if system_msg:
             config_kwargs["system_instruction"] = system_msg
-        if schema:
+        if schema and not tools:
             config_kwargs["response_mime_type"] = "application/json"
             config_kwargs["response_json_schema"] = schema
+
+        if tools:
+            gemini_tools = _openai_tools_to_gemini(tools, types)
+            if gemini_tools:
+                config_kwargs["tools"] = gemini_tools
 
         config = types.GenerateContentConfig(**config_kwargs)
 
@@ -85,9 +107,22 @@ class GeminiProvider(LLMProvider):
             config=config,
         )
 
-        text = resp.text or ""
+        tool_calls_out: list[dict[str, Any]] = []
+        text_parts: list[str] = []
+        if resp.candidates and resp.candidates[0].content:
+            for part in resp.candidates[0].content.parts:
+                if part.function_call:
+                    fc = part.function_call
+                    tool_calls_out.append({
+                        "name": fc.name,
+                        "args": dict(fc.args) if fc.args else {},
+                    })
+                elif part.text:
+                    text_parts.append(part.text)
+
+        text = "".join(text_parts)
         try:
-            output = json.loads(text)
+            output = json.loads(text) if text else {"text": ""}
         except (json.JSONDecodeError, ValueError):
             output = {"text": text}
 
@@ -100,6 +135,7 @@ class GeminiProvider(LLMProvider):
             confidence=1.0,
             tokens_in=tokens_in or 0,
             tokens_out=tokens_out or 0,
+            tool_calls=tool_calls_out or None,
         )
 
 

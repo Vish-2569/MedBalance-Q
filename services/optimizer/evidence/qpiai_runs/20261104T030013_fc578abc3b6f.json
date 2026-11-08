@@ -1,0 +1,46 @@
+{
+  "timestamp": "20261104T030013",
+  "n_vars": 150,
+  "offset": 99.0,
+  "q_hash": "fc578abc3b6f",
+  "attempts": [
+    {
+      "tier": "qpiai-platform",
+      "time_ms": 7.6,
+      "n_vars": 150,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "problem payload must include name"
+    },
+    {
+      "tier": "qpiai-local",
+      "time_ms": 190.77,
+      "n_vars": 150,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "time_limit, mip_rel_gap, and node_limit do not apply to QUBO, HUBO, or Ising; use num_reads and num_sweeps"
+    },
+    {
+      "tier": "neal-sa",
+      "time_ms": 2.13,
+      "n_vars": 150,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "No module named 'neal'"
+    },
+    {
+      "tier": "greedy-descent",
+      "time_ms": 5305.99,
+      "n_vars": 150,
+      "samples_returned": 5,
+      "energy": 46.65400301378569,
+      "error": null
+    }
+  ],
+  "winner": {
+    "tier": "greedy-descent",
+    "energy": 46.65400301378569,
+    "time_ms": 5305.99,
+    "samples_count": 5
+  }
+}

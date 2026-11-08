@@ -17,6 +17,14 @@ from medbal_common.logging import get_logger
 
 log = get_logger("genai.pdf")
 
+
+def _sim_today() -> date:
+    try:
+        from medbal_common.clock import today
+        return today()
+    except Exception:
+        return date.today()
+
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 _env = jinja2.Environment(
@@ -68,7 +76,7 @@ def generate_dta_pdf(order: dict[str, Any], *, base_url: str = "") -> bytes:
     residual_days = 0
     try:
         exp = date.fromisoformat(str(order.get("expiry", ""))[:10])
-        today = date.today()
+        today = _sim_today()
         residual_days = (exp - today).days
     except (ValueError, TypeError):
         pass
@@ -95,7 +103,7 @@ def generate_dta_pdf(order: dict[str, Any], *, base_url: str = "") -> bytes:
 
     context = {
         "dta_number": order.get("dta_number", ""),
-        "date": order.get("created_at", str(date.today()))[:10],
+        "date": order.get("created_at", str(_sim_today()))[:10],
         "plan_id": order.get("plan_id", ""),
         "order_id": order.get("id", ""),
         "status": order.get("status", "proposed"),
@@ -165,7 +173,7 @@ def generate_credit_memo_pdf(
     total_value = sum(i.get("value_inr", 0) for i in items)
 
     context = {
-        "date": str(date.today()),
+        "date": str(_sim_today()),
         "plan_id": plan_id,
         "donor_facility_id": donor_facility.get("id", ""),
         "donor_facility_name": donor_facility.get("name", ""),

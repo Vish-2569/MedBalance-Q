@@ -22,6 +22,19 @@ TIMEOUT_SMART = 45.0
 MAX_RETRIES = 2
 
 
+def _is_non_retryable_provider_error(error: Exception) -> bool:
+    status_code = getattr(error, "code", None)
+    if not isinstance(status_code, int):
+        status_code = getattr(error, "status_code", None)
+    if not isinstance(status_code, int):
+        status_code = getattr(getattr(error, "response", None), "status_code", None)
+    return (
+        isinstance(status_code, int)
+        and 400 <= status_code < 500
+        and status_code != 429
+    )
+
+
 class LLMService:
     def __init__(
         self,
@@ -84,7 +97,7 @@ class LLMService:
                         "(purpose, prompt_id, version, model, input, output, "
                         "confidence, cached, fallback, latency_ms, cache_key) "
                         "VALUES (:purpose, :prompt_id, :version, :model, "
-                        ":input::jsonb, :output::jsonb, :confidence, :cached, "
+                        "CAST(:input AS jsonb), CAST(:output AS jsonb), :confidence, :cached, "
                         ":fallback, :latency_ms, :cache_key)"
                     ),
                     {
@@ -197,6 +210,8 @@ class LLMService:
                 latency = int((time.monotonic() - t0) * 1000)
                 last_error = f"{type(e).__name__}: {e}"
                 log.warning("provider_error", attempt=attempt, error=last_error)
+                if _is_non_retryable_provider_error(e):
+                    break
                 continue
 
             latency = int((time.monotonic() - t0) * 1000)
@@ -240,7 +255,7 @@ class LLMService:
                 resp["tool_calls"] = result.tool_calls
             return resp
 
-        latency = int((time.monotonic() - t0) * 1000) if "t0" in dir() else 0
+        latency = int((time.monotonic() - t0) * 1000)
         self._log_call(
             purpose=purpose, prompt_id=prompt_id, version=version,
             model=model, input_data=input_data, output=None,

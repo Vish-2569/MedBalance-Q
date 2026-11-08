@@ -7,12 +7,20 @@ DEFAULT_RETRIES = 3
 DEFAULT_CONNECT_TIMEOUT = 5.0
 
 
+def _service_headers() -> dict[str, str]:
+    from medbal_common.settings import settings
+    if settings.JWT_SECRET:
+        return {"X-Service-Token": settings.JWT_SECRET}
+    return {}
+
+
 def client(base_url: str = "", timeout: float = DEFAULT_TIMEOUT, retries: int = DEFAULT_RETRIES) -> httpx.Client:
     transport = httpx.HTTPTransport(retries=retries)
     return httpx.Client(
         base_url=base_url,
         timeout=httpx.Timeout(timeout, connect=DEFAULT_CONNECT_TIMEOUT),
         transport=transport,
+        headers=_service_headers(),
     )
 
 
@@ -22,4 +30,5 @@ def async_client(base_url: str = "", timeout: float = DEFAULT_TIMEOUT, retries: 
         base_url=base_url,
         timeout=httpx.Timeout(timeout, connect=DEFAULT_CONNECT_TIMEOUT),
         transport=transport,
+        headers=_service_headers(),
     )

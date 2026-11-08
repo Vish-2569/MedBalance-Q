@@ -108,6 +108,22 @@ class TestChatAdapter:
         report = ChatAdapter().parse("H3", "test")
         assert report.facility_code == "H3"
 
+    def test_extracts_body_and_simulation_date_from_push_payload(self):
+        report = ChatAdapter().parse("H3", {
+            "facility_id": "H3",
+            "date": "2026-11-07",
+            "body": "ನಮಸ್ಕಾರ\ninsulin 20 vials",
+        })
+        assert report.raw_text == "ನಮಸ್ಕಾರ\ninsulin 20 vials"
+        assert report.reported_at == "2026-11-07"
+
+    def test_repairs_utf8_mojibake_in_pushed_message(self):
+        report = ChatAdapter().parse("H3", {
+            "date": "2026-11-07",
+            "body": "à²¨à²®à²¸à³à²à²¾à²°",
+        })
+        assert report.raw_text == "ನಮಸ್ಕಾರ"
+
 
 class TestTextAdapter:
     def test_stores_raw_text(self):

@@ -1,0 +1,38 @@
+{
+  "timestamp": "20261105T182657",
+  "n_vars": 150,
+  "offset": 99.0,
+  "q_hash": "fc578abc3b6f",
+  "attempts": [
+    {
+      "tier": "qpiai-platform",
+      "time_ms": 0.01,
+      "n_vars": 150,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "QPIAI_OPT_URL or QPIAI_OPT_TOKEN not set"
+    },
+    {
+      "tier": "qpiai-local",
+      "time_ms": 0.01,
+      "n_vars": 150,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "QPIAI_OPT_TOKEN not set"
+    },
+    {
+      "tier": "neal-sa",
+      "time_ms": 574.37,
+      "n_vars": 150,
+      "samples_returned": 5,
+      "energy": 40.48771815626793,
+      "error": null
+    }
+  ],
+  "winner": {
+    "tier": "neal-sa",
+    "energy": 40.48771815626793,
+    "time_ms": 574.37,
+    "samples_count": 5
+  }
+}

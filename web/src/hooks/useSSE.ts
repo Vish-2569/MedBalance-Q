@@ -13,13 +13,11 @@ function notify() {
 export function useSSEConnection() {
   const queryClient = useQueryClient();
   const esRef = useRef<EventSource | null>(null);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === '1';
     if (USE_FIXTURES) return;
-
-    const es = new EventSource('/api/core/events');
-    esRef.current = es;
 
     const EVENT_TYPES = [
       'report.received', 'inventory.updated', 'anomaly.flagged',
@@ -61,9 +59,28 @@ export function useSSEConnection() {
       }
     };
 
-    EVENT_TYPES.forEach(t => es.addEventListener(t, handler(t)));
+    let backoff = 1000;
 
-    return () => { es.close(); esRef.current = null; };
+    function connect() {
+      const es = new EventSource('/api/core/events');
+      esRef.current = es;
+      es.onopen = () => { backoff = 1000; };
+      es.onerror = () => {
+        es.close();
+        esRef.current = null;
+        retryRef.current = setTimeout(connect, Math.min(backoff, 30000));
+        backoff = Math.min(backoff * 2, 30000);
+      };
+      EVENT_TYPES.forEach(t => es.addEventListener(t, handler(t)));
+    }
+
+    connect();
+
+    return () => {
+      esRef.current?.close();
+      esRef.current = null;
+      clearTimeout(retryRef.current);
+    };
   }, [queryClient]);
 }
 

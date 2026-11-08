@@ -338,6 +338,16 @@ def get_order(session: Session, order_id: str) -> dict | None:
     return _order_row_to_dict(row) if row else None
 
 
+def get_order_by_qr_token(session: Session, token: str) -> dict | None:
+    row = session.execute(text(
+        "SELECT id, dta_number, plan_run_id, src_facility_id, dst_facility_id, "
+        "drug_code, drug_name, batch_no, qty, usable, score, status, "
+        "temperature_req, vehicle_id, approved_by, approved_at, rejected_reason, "
+        "created_at FROM transfer_order WHERE qr_token = :token"
+    ), {"token": token}).fetchone()
+    return _order_row_to_dict(row) if row else None
+
+
 def _order_row_to_dict(r) -> dict:
     return {
         "id": r.id,

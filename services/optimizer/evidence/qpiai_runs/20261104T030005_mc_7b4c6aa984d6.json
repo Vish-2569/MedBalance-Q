@@ -1,0 +1,31 @@
+{
+  "timestamp": "20261104T030005",
+  "type": "maxcut",
+  "n_nodes": 11,
+  "n_edges": 55,
+  "graph_hash": "7b4c6aa984d6",
+  "attempts": [
+    {
+      "tier": "qcloud-simulator",
+      "time_ms": 2180.99,
+      "cut_value": 0,
+      "approx_ratio": 0,
+      "error": "Error during QASM job submission: Experiment 'QAOA_MaxCut' not found. Please create the experiment first."
+    },
+    {
+      "tier": "qsv-local",
+      "time_ms": 4668.73,
+      "cut_value": 19.58264824938447,
+      "approx_ratio": 1.0,
+      "error": null
+    }
+  ],
+  "winner": {
+    "tier": "qsv-local",
+    "cut_value": 19.58264824938447,
+    "approx_ratio": 1.0,
+    "time_ms": 4668.73,
+    "depth": 1,
+    "shots": 1024
+  }
+}

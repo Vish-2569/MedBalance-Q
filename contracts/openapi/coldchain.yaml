@@ -67,21 +67,30 @@ components:
   schemas:
     DeviceStatus:
       type: object
-      required: [device_id, temperature_c, battery_pct, last_seen, alert]
+      required: [device_id, temperature_c, battery_pct, last_seen, alert, state]
       properties:
         device_id:
           type: string
         vehicle_id:
           type: ["string", "null"]
+        facility_id:
+          type: ["string", "null"]
+        state:
+          type: string
+          enum: [ok, warning, excursion]
         temperature_c:
-          type: number
+          type: ["number", "null"]
         battery_pct:
           type: integer
         last_seen:
-          type: string
+          type: ["string", "null"]
           format: date-time
         alert:
           type: boolean
+        temperature_history:
+          type: array
+          items:
+            type: number
 
     TelemetryPoint:
       type: object

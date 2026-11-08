@@ -87,6 +87,7 @@ Status key: **Pass** = implemented + tested + evidence; **Partial** = implemente
 | R33 | Results page (plan metrics, shortage reduction, ablation) | CLAUDE.md §4 | `web/src/pages/ResultsPage.tsx` | Ablation table only in fixture mode; live mode disclaims it | Pass |
 | R34 | AI Health page (provider telemetry, eval scores, demo indicators) | CLAUDE.md §4 | `web/src/pages/AIHealthPage.tsx` | "(demo)" labels + sky-blue tinting when showing fixtures; "offline / deterministic" badge on eval scores | Pass |
 | R35 | Copilot panel (bilingual, tool call chips, SSE streaming) | CLAUDE.md §4 | `web/src/components/CopilotPanel.tsx` | Fixture responses use real tool names; `[Demo response]` / `[ಡೆಮೊ ಪ್ರತಿಕ್ರಿಯೆ]` prefixes | Pass |
+| R37 | All navigation pages include collapsible guide panels, helper text, and improved empty states for new users | UX requirement | All 8 page components in `web/src/pages/` (MapPage, IngestionPage, PlanPage, BenchmarkPage, ColdchainPage, ResultsPage, AIHealthPage, ScenariosPage) | 66 vitest tests pass; `npx tsc --noEmit` clean | Pass |
 
 ## AI Evaluation
 
@@ -102,7 +103,7 @@ Status key: **Pass** = implemented + tested + evidence; **Partial** = implemente
 
 | Status | Count |
 |--------|-------|
-| Pass | 26 |
+| Pass | 27 |
 | Partial | 10 |
 | Pending | 0 |
 

@@ -3,7 +3,9 @@ from __future__ import annotations
 import asyncio
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from medbal_common.auth import CurrentUser, require_role
 
 from .. import scenario_defs
 from ..clock_state import clock
@@ -17,7 +19,10 @@ async def list_scenarios():
 
 
 @router.post("/scenario/{name}")
-async def activate_scenario(name: str):
+async def activate_scenario(
+    name: str,
+    user: CurrentUser = Depends(require_role("operator", "admin")),
+):
     try:
         scenario_defs.activate(name)
     except ValueError:
@@ -31,7 +36,10 @@ async def get_signals():
 
 
 @router.post("/reset")
-async def reset_sim(seed: int = Query(default=42)):
+async def reset_sim(
+    seed: int = Query(default=42),
+    user: CurrentUser = Depends(require_role("admin")),
+):
     clock.reset(seed)
     scenario_defs.reset_scenarios()
     async with httpx.AsyncClient(timeout=5.0) as client:

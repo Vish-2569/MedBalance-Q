@@ -5,6 +5,7 @@ In fixture mode, returns canned data so tests run without live services.
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
 import os
 from typing import Any, Callable, Coroutine
 
@@ -17,12 +18,16 @@ log = get_logger("genai.copilot_tools")
 
 
 def _use_fixtures() -> bool:
+    override = _FIXTURE_OVERRIDE.get()
+    if override is not None:
+        return override
     return os.environ.get("USE_FIXTURES", "").lower() in ("1", "true") or settings.USE_FIXTURES
 
 CORE_API_URL = os.environ.get("CORE_API_URL", "http://core-api:8001")
 OPTIMIZER_URL = os.environ.get("OPTIMIZER_URL", "http://optimizer:8005")
 COLDCHAIN_URL = os.environ.get("COLDCHAIN_URL", "http://coldchain:8006")
 TOOL_TIMEOUT = 10.0
+_FIXTURE_OVERRIDE: ContextVar[bool | None] = ContextVar("copilot_fixture_override", default=None)
 
 # ── Tool JSON-schema definitions (passed to the LLM) ─────────────
 
@@ -459,14 +464,23 @@ TOOL_MAP: dict[str, Callable[..., Coroutine[Any, Any, dict[str, Any]]]] = {
 }
 
 
-async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
+async def execute_tool(
+    name: str,
+    args: dict[str, Any],
+    *,
+    use_fixtures: bool | None = None,
+) -> dict[str, Any]:
     """Execute a copilot tool by name. Returns result dict; never raises."""
     executor = TOOL_MAP.get(name)
     if not executor:
         return {"error": f"Unknown tool: {name}"}
+    token = _FIXTURE_OVERRIDE.set(use_fixtures) if use_fixtures is not None else None
     try:
         result = await executor(args)
         return result if isinstance(result, dict) else {"data": result}
     except Exception as exc:
         log.warning("tool_execution_error", tool=name, error=str(exc))
         return {"error": f"Tool {name} failed: {exc}"}
+    finally:
+        if token is not None:
+            _FIXTURE_OVERRIDE.reset(token)

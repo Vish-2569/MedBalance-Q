@@ -250,6 +250,27 @@ def test_retry_exhausted_returns_fallback():
     assert result["fallback"] is True
 
 
+def test_non_retryable_provider_error_returns_fallback_without_retries():
+    class ForbiddenError(Exception):
+        code = 403
+
+    class ForbiddenProvider(FakeProvider):
+        def complete(self, *args, **kwargs):
+            self.calls.append({})
+            raise ForbiddenError("billing is required")
+
+    provider = ForbiddenProvider()
+    svc = LLMService(provider=provider, cache=LLMCache(redis_client=None))
+    result = asyncio.get_event_loop().run_until_complete(
+        svc.complete("test", "smoke", 1, {"text": "permission denied"})
+    )
+
+    assert result["ok"] is False
+    assert result["fallback"] is True
+    assert "billing is required" in result["error"]
+    assert len(provider.calls) == 1
+
+
 # ---------- provider interface ----------
 
 def test_fake_provider_records_calls():

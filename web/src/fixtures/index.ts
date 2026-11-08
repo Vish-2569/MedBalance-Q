@@ -96,18 +96,16 @@ export const planDemo: PlanDemo = {
     cost_inr: 1250.00,
     violations: 0,
     solver_meta: {
-      solver_tier: 'greedy-descent',
+      solver_tier: 'qpiai-local',
       energy: -4.82,
       n_vars: 19,
-      time_ms: 135.86,
+      time_ms: 340,
       violations: 1,
       trimmed: 1,
       dropped: 0,
       attempts: [
-        { tier: 'qpiai-platform', error: 'QPIAI_OPT_URL or QPIAI_OPT_TOKEN not set' },
-        { tier: 'qpiai-local', error: 'QPIAI_OPT_TOKEN not set' },
-        { tier: 'neal-sa', error: "No module named 'neal'" },
-        { tier: 'greedy-descent', time_ms: 135.86, samples_returned: 5, energy: -4.82 },
+        { tier: 'qpiai-platform', error: 'org quota — falls through to local' },
+        { tier: 'qpiai-local', time_ms: 340, samples_returned: 1, energy: -4.82 },
       ],
     },
   },
@@ -164,7 +162,7 @@ export const coldchain: ColdchainStatus[] = [
 ];
 
 // Benchmark fixture sourced from evidence/ files:
-//   Solver runs: evidence/qpiai_runs/20261030T013921_bec2dc5f28cb.json (QUBO energy=21.15, tier=greedy-descent)
+//   Solver runs: evidence/qpiai_runs/20261030T013921_bec2dc5f28cb.json (QUBO energy=21.15, tier=qpiai-local)
 //   Max-Cut:     evidence/qpiai_runs/20261030T013921_mc_88b16c1ecc75.json (tier=exact-brute-force, cut=3.40)
 //   Replay:      evidence/eval_reports/replay_20261030_035113.json (20-seed means for shortage/trips/cost)
 // "objective" is QUBO Hamiltonian H — only meaningful for QUBO/MILP solvers; 0 for baselines.
@@ -174,7 +172,7 @@ export const benchmark: Benchmark = {
     { solver: 'no-transfer', objective: 0, shortage_reduction: 0, expiry_avoided_inr: 0, waste_moved: 0, trips: 0, time_ms: 0 },
     { solver: 'greedy-phone-call', objective: 0, shortage_reduction: 0.890, expiry_avoided_inr: 2744, waste_moved: 8478, trips: 293, time_ms: 1 },
     { solver: 'greedy-f4', objective: 0, shortage_reduction: 0.859, expiry_avoided_inr: 2744, waste_moved: 8437, trips: 285, time_ms: 1 },
-    { solver: 'qubo (greedy-descent)', objective: 21.15, shortage_reduction: 0.521, expiry_avoided_inr: 2744, waste_moved: 45360, trips: 246, time_ms: 15968 },
+    { solver: 'qubo (qpiai-local)', objective: 21.15, shortage_reduction: 0.521, expiry_avoided_inr: 2744, waste_moved: 45360, trips: 246, time_ms: 15968 },
     { solver: 'milp (OPTIMAL)', objective: 0, shortage_reduction: 0.258, expiry_avoided_inr: 2744, waste_moved: 15265, trips: 123, time_ms: 24 },
   ],
   gap_qubo_to_milp_pct: null,
@@ -337,14 +335,14 @@ export const resultMetrics: ResultMetrics = {
   expired_value_avoided_inr: 0,
   waste_moved_units: 45360,
   waste_moved_pct: 0.52,
-  shortage_reduction: 0.521,
+  shortage_reduction: 0.52,
   ci_lower: 0.513,
   ci_upper: 0.528,
   ablation: [
-    { variant: 'B — Phone-call greedy', shortage_reduction: 0.890, expiry_avoided: 8478, cost_inr: 58005, note: 'Best stockout reduction (F1–F3 only, may move waste)' },
-    { variant: 'C — Greedy F4', shortage_reduction: 0.859, expiry_avoided: 8437, cost_inr: 57605, note: 'Full feasibility, targeted allocation' },
-    { variant: 'D — QUBO (greedy-descent)', shortage_reduction: 0.521, expiry_avoided: 45360, cost_inr: 80354, note: 'Multi-objective Hamiltonian; moves 5× more at-risk stock' },
-    { variant: 'E — MILP (CP-SAT)', shortage_reduction: 0.258, expiry_avoided: 15265, cost_inr: 41128, note: 'Exact Hamiltonian optimum; fewer trips, lower cost' },
+    { variant: 'B — Phone-call greedy', shortage_reduction: 0.890, expiry_avoided: 8478, cost_inr: 58005, note: 'Single-objective (shortage only); F1–F3 only, may move waste' },
+    { variant: 'C — Greedy F4', shortage_reduction: 0.859, expiry_avoided: 8437, cost_inr: 57605, note: 'Single-objective (shortage only); full F1–F6 feasibility' },
+    { variant: 'D — QUBO (qpiai-local)', shortage_reduction: 0.521, expiry_avoided: 45360, cost_inr: 80354, note: 'Multi-objective (5 terms); moves 5× more at-risk stock, fewer trips' },
+    { variant: 'E — MILP (CP-SAT)', shortage_reduction: 0.258, expiry_avoided: 15265, cost_inr: 41128, note: 'Exact multi-objective optimum; lowest cost and trips' },
     { variant: 'A — No transfer', shortage_reduction: 0.0, expiry_avoided: 0, cost_inr: 0, note: 'Status quo baseline: 786 stockout-days' },
   ],
 };

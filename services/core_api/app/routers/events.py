@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import uuid
 
 import redis
 
@@ -27,26 +26,14 @@ ALL_STREAMS = [
     "custody.scanned",
 ]
 
-SSE_GROUP = "sse"
-HEARTBEAT_INTERVAL = 15
-
-
 async def _event_generator():
-    consumer_name = f"core-api-sse-{uuid.uuid4().hex[:8]}"
+    stream_ids = {stream: "$" for stream in ALL_STREAMS}
     r = redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
-
-    for stream in ALL_STREAMS:
-        try:
-            r.xgroup_create(stream, SSE_GROUP, id="0", mkstream=True)
-        except redis.exceptions.ResponseError:
-            pass
-
-    stream_ids = {s: ">" for s in ALL_STREAMS}
     try:
         while True:
             try:
-                entries = r.xreadgroup(
-                    SSE_GROUP, consumer_name, stream_ids, count=20, block=2000
+                entries = await asyncio.to_thread(
+                    r.xread, stream_ids, count=20, block=2000,
                 )
             except redis.exceptions.ConnectionError:
                 yield f"event: error\ndata: {json.dumps({'error': 'redis connection lost'})}\n\n"
@@ -59,7 +46,7 @@ async def _event_generator():
                     for msg_id, fields in messages:
                         data = fields.get("data", "{}")
                         yield f"event: {stream_name}\ndata: {data}\n\n"
-                        r.xack(stream_name, SSE_GROUP, msg_id)
+                        stream_ids[stream_name] = msg_id
             else:
                 yield f"event: heartbeat\ndata: {json.dumps({'ts': __import__('time').time()})}\n\n"
                 await asyncio.sleep(0.1)

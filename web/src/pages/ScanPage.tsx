@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Truck, PackageCheck, CheckCircle, AlertTriangle, QrCode, Package, Activity } from 'lucide-react';
+import { Truck, PackageCheck, CheckCircle, AlertTriangle, QrCode, Package } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn, statusColor } from '@/lib/utils';
 import type { OrderStatus } from '@/types/domain';
+import BrandMark from '@/components/BrandMark';
 
 const NEXT_EVENT: Record<string, { event: string; label: string; icon: typeof Truck; color: string }> = {
   approved: { event: 'dispatch', label: 'Dispatch', icon: Truck, color: 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800' },
@@ -19,16 +20,11 @@ export default function ScanPage() {
   const [localStatus, setLocalStatus] = useState<OrderStatus | null>(null);
   const [lastEvent, setLastEvent] = useState<string | null>(null);
 
-  const { data: orders = [], isLoading, isError } = useQuery({
-    queryKey: ['orders'],
-    queryFn: () => api.getOrders(),
-  });
-
-  const order = orders.find(o => {
-    if (!token) return false;
-    if (o.id === token) return true;
-    if (o.dta_number === token) return true;
-    return false;
+  const { data: order, isLoading, isError } = useQuery({
+    queryKey: ['resolveQrToken', token],
+    queryFn: () => api.resolveQrToken(token!),
+    enabled: !!token,
+    retry: false,
   });
 
   const currentStatus = localStatus ?? order?.status;
@@ -83,8 +79,8 @@ export default function ScanPage() {
           <p className="text-slate-700 font-medium">{isError ? 'Could not load orders' : 'Order not found'}</p>
           <p className="text-sm text-slate-500">
             {isError
-              ? 'The core API is unavailable. Try again when it is healthy.'
-              : 'No order ID or DTA number matches this token. QR-token lookup is not exposed by the live order API.'}
+              ? 'Could not resolve this QR token. The core API may be unavailable.'
+              : 'No order matches this token.'}
           </p>
         </div>
       </div>
@@ -97,9 +93,9 @@ export default function ScanPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-2">
-        <Activity className="w-5 h-5 text-teal-600" />
+        <BrandMark className="h-7 w-7" />
         <span className="font-semibold text-teal-700">MedBalance-Q</span>
-        <span className="text-slate-400 text-sm ml-auto">Custody Scan</span>
+        <span className="text-slate-500 text-sm ml-auto">Custody Scan</span>
       </header>
 
       <div className="flex-1 flex flex-col items-center p-4 max-w-md mx-auto w-full">
@@ -131,7 +127,7 @@ export default function ScanPage() {
 
           <div className="p-4 space-y-3">
             <div className="flex items-start gap-3">
-              <Package className="w-5 h-5 text-slate-400 mt-0.5 shrink-0" />
+              <Package className="w-5 h-5 text-slate-500 mt-0.5 shrink-0" />
               <div>
                 <p className="font-semibold text-slate-800">{order.drug_name}</p>
                 <p className="text-sm text-slate-500">{order.qty} {order.drug_code === 'INSUL' ? 'vials' : 'units'} · Batch {order.batch_no}</p>
@@ -140,14 +136,14 @@ export default function ScanPage() {
 
             <div className="flex items-center gap-2 text-sm">
               <span className="px-2 py-1 bg-slate-50 rounded-lg text-slate-700 font-medium">{order.src_facility_id}</span>
-              <span className="text-slate-400">→</span>
+              <span className="text-slate-500">→</span>
               <span className="px-2 py-1 bg-slate-50 rounded-lg text-slate-700 font-medium">{order.dst_facility_id}</span>
               {order.temperature_req === 'cold_chain' && (
                 <span className="text-xs px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-full">❄ Cold</span>
               )}
             </div>
 
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-slate-500">
               Score: {order.score.toFixed(2)} · Plan: {order.plan_id}
             </div>
           </div>
@@ -156,15 +152,16 @@ export default function ScanPage() {
         {/* Qty input for receive */}
         {action?.event === 'receive' && (
           <div className="w-full mt-4">
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Received quantity</label>
+            <label htmlFor="receive-qty" className="block text-sm font-medium text-slate-700 mb-1.5">Received quantity</label>
             <input
+              id="receive-qty"
               type="number"
               value={receiveQty}
               onChange={e => setReceiveQty(e.target.value)}
               placeholder={String(order.qty)}
               className="w-full h-12 px-4 text-lg rounded-xl border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-colors"
             />
-            <p className="text-xs text-slate-400 mt-1">Leave blank to confirm full quantity ({order.qty})</p>
+            <p className="text-xs text-slate-500 mt-1">Leave blank to confirm full quantity ({order.qty})</p>
           </div>
         )}
 

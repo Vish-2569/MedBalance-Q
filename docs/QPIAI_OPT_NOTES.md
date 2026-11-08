@@ -4,6 +4,7 @@ Package: `qpiai-opt==0.0.9` (installed via `uv add qpiai-opt`)
 
 ## Key Classes
 
+
 ### `Client`
 ```python
 from qpiai_opt import Client

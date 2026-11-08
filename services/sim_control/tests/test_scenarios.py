@@ -52,7 +52,8 @@ def test_reset(client):
         assert r.status_code == 200
         data = r.json()
         assert data["seed"] == 42
-        assert data["sim_date"] == "2026-11-01"
+        from datetime import date
+        assert data["sim_date"] == date.today().isoformat()
 
     r = client.get("/signals")
     assert r.json() == []

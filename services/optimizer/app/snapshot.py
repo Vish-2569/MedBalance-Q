@@ -104,7 +104,10 @@ def _parse_date(v: Any) -> date:
 
 
 def build_snapshot(data: dict[str, Any], today: date | None = None) -> Snapshot:
-    snap = Snapshot(today=today or date.today())
+    if today is None:
+        from medbal_common.clock import today as clock_today
+        today = clock_today()
+    snap = Snapshot(today=today)
 
     for f in data.get("facilities", []):
         fac = Facility(

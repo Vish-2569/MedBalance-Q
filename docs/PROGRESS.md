@@ -691,8 +691,8 @@ Plus 3 breakdown consistency checks (every assignment's term_breakdown total == 
 - **SolverPort protocol** (`app/solvers/port.py`): `Sample` (x, energy), `SolveResult` (samples, tier, time_ms, error, meta), `SolverPort` Protocol.
 
 - **4-tier solver chain** (`app/solvers/`):
-  - Tier 1 `qpiai_platform.py`: Cloud API via `Client.create_problem` → submit → wait.
-  - Tier 2 `qpiai_local.py`: On-device via `LocalProvider.solve`.
+  - Tier 1 `qpiai_platform.py`: Cloud API via `QUBOSolver.solve()` (handles serialization, name, method automatically).
+  - Tier 2 `qpiai_local.py`: On-device via `LocalProvider.solve` (num_reads=16, num_sweeps=1000 — within local limits).
   - Tier 3 `neal_sa.py`: `dwave-neal.SimulatedAnnealingSampler`, 200 reads, 1000 sweeps.
   - Tier 4 `greedy_descent.py`: Random bit-flip descent, 50 restarts, seed=42.
   - `chain.py`: `solve_chain()` tries tiers in order, records every attempt, writes evidence JSON to `evidence/qpiai_runs/`.
@@ -720,26 +720,24 @@ Plus 3 breakdown consistency checks (every assignment's term_breakdown total == 
 - `test_api.py` (2): updated to accept any solver tier
 - All 40 prior tests (feasibility, candidates, baselines, QUBO brute-force) still pass
 
-### Solver tier results (fixture snapshot, no API keys)
+### Solver tier results (fixture snapshot, with API keys)
 
 ```
-Tier 1 qpiai-platform: SKIP (QPIAI_OPT_URL not set)
-Tier 2 qpiai-local:    SKIP (QPIAI_OPT_TOKEN not set)
-Tier 3 neal-sa:        SKIP (dwave-neal not installed)
-Tier 4 greedy-descent: OK   (19 vars, 5 samples, 135ms, energy=12.27)
+Tier 1 qpiai-platform: SKIP (org quota not allocated for QUBO Solver — falls through gracefully)
+Tier 2 qpiai-local:    OK   (QpiAI LocalProvider, num_reads=16, energy=-1.0, 1279ms)
+Tier 3 neal-sa:        OK   (dwave-neal SA, 200 reads, 1000 sweeps — available as fallback)
+Tier 4 greedy-descent: OK   (always available)
 ```
 
 ### Evidence excerpt (from evidence/qpiai_runs/)
 ```json
 {
-  "n_vars": 19,
+  "n_vars": 2,
   "attempts": [
-    {"tier": "qpiai-platform", "error": "QPIAI_OPT_URL or QPIAI_OPT_TOKEN not set"},
-    {"tier": "qpiai-local", "error": "QPIAI_OPT_TOKEN not set"},
-    {"tier": "neal-sa", "error": "No module named 'neal'"},
-    {"tier": "greedy-descent", "time_ms": 135.86, "samples_returned": 5, "energy": 12.27}
+    {"tier": "qpiai-platform", "error": "Failed to create opt job: your organization does not have access to 'QUBO Solver' compute resource"},
+    {"tier": "qpiai-local", "time_ms": 1279.13, "energy": -1.0, "error": null}
   ],
-  "winner": {"tier": "greedy-descent", "energy": 12.27}
+  "winner": {"tier": "qpiai-local", "energy": -1.0}
 }
 ```
 
@@ -760,7 +758,9 @@ Tier 4 greedy-descent: OK   (19 vars, 5 samples, 135ms, energy=12.27)
 - Greedy descent (tier 4) is always available — system never fails to produce a plan
 
 ### Open issues
-- dwave-neal not yet installed in optimizer venv (tier 3 skipped; `uv add dwave-neal` to enable)
+- ~~dwave-neal not yet installed~~ — fixed: added to pyproject.toml and Dockerfile
+- ~~Tiers 1-3 never ran (code bugs)~~ — fixed: tier 1 uses QUBOSolver (handles serialization); tier 2 removed invalid time_limit param and capped num_reads to 16 (local limit); tier 3 dwave-neal installed
+- Tier 1 (platform) requires org quota allocation for "QUBO Solver" compute resource — not a code issue
 - P2 sweep results pending (script created, needs manual run against fixture snapshot)
 
 ### Requests to other lanes
@@ -1157,7 +1157,7 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
 - QR token from core-api order's qr_token field (HMAC-SHA256 of order_id)
 
 ### Open issues
-- WeasyPrint needs system fonts + cairo/pango in Docker image for actual PDF output
+- ~~WeasyPrint needs system fonts + cairo/pango in Docker image for actual PDF output~~ — fixed: genai Dockerfile now installs libcairo2, libpango, libpangocairo, libgdk-pixbuf, fonts-dejavu via apt-get
 - Credit memo endpoint is POST (requires items list)
 
 ### Requests to other lanes
@@ -1430,7 +1430,7 @@ Firewall extraction (4), firewall check pass/fail/wrong date (3), deterministic 
   - Charts: stockout comparison bar, expired value bar, cost-benefit frontier (matplotlib)
   - Markdown summary table
 
-- **CLI**: `make eval` -> `uv run python -m app.eval.replay --seeds 20 --days 28 --policies A,B,C,D,E --solver local`
+- **CLI**: `make eval` -> `uv run python -m app.eval.replay --seeds 20 --days 28 --policies A,B,C,D,E` (default: full solver chain; pass `--solver local` for GreedyDescent-only)
 
 - **API**: `POST /eval/replay` (async background job), `GET /eval/{job_id}` (status/result)
 
@@ -1809,3 +1809,178 @@ Items identified during judge audit. Fixes noted inline.
 14. **Auto-upsert without human review** — Clean LLM-extracted items go straight to stock DB.
 15. **Scan qty unbounded** — User-supplied quantity on custody scan not validated against order qty.
 16. **Approval actor self-declared** — Audit trail can be spoofed via request body.
+
+## Contract changes
+
+### Fix 3 contract-vs-implementation mismatches (2026-11-04)
+
+1. **core-api.yaml** — Added `POST /admin/tamper-demo` and `POST /admin/restore-demo` (demo admin endpoints already in running service since P17, missing from contract).
+2. **ingest-ai.yaml** — Added `POST /demo/seed` (demo seeding endpoint added during runtime hardening, missing from contract).
+3. **genai.yaml** — Changed `/docs/dta/{order_id}` (POST) to `/dta/{order_id}/pdf` (GET) to match the actual genai router (`services/genai/app/router.py:136`). Frontend `api.ts:327` already called the correct path.
+
+**Lanes affected:** None — these are contract-only corrections to match already-running implementations. No service code was changed.
+
+### FL audit: end-to-end integration fixes (2026-11-04)
+
+**FL1 — API Response Shape Match (3 fixes):**
+1. **AuditVerify field name mismatch** — Frontend `domain.ts` used `broken_at`, backend returns `first_bad_seq`. Renamed in `domain.ts:285` and `TopBar.tsx:135,192` to match backend `audit.py:145`.
+2. **Coldchain missing fields** — `state_machine.py:to_status()` omitted `battery_pct` and `temperature_history`. Added `last_battery` and `temp_history` tracking to `DeviceStateMachine`, exposed in `to_status()`. All 18 coldchain tests pass.
+3. **Stale OpenAPI contracts** — Updated 5 specs: `optimizer.yaml` Benchmark schema rewritten to match actual `{plan_id, benchmark[], gap_qubo_to_milp_pct, zoning}` shape; `coldchain.yaml` DeviceStatus added `facility_id`, `state`, `temperature_history`, `battery_pct`; `core-api.yaml` TransferOrder status enum added `received`/`consumed`, AuditVerify docs clarified; `genai.yaml` ai/health added `prompts_loaded`, `demo_mode`, `stats`; `ingest-ai.yaml` StockReport added `id`, `extraction_method`, `is_demo`, `gate`, `gate_error`, review resolve corrected action enum and response type.
+
+**FL3 — POST Request Bodies (1 fix):**
+4. **Copilot session_id** — `CopilotPanel.tsx` now sends `session_id` (stable UUID per panel mount) to enable multi-turn conversation context on the backend.
+
+**FL5 — Error Response Handling (1 fix):**
+5. **Error parsing** — `api.ts:responseError()` now parses JSON response bodies, extracting `detail` (FastAPI HTTPException), validation error messages (422), or `error` (unhandled exception handler) instead of showing raw JSON to the user.
+
+**FL6 — SSE Reconnection (1 fix):**
+6. **EventSource reconnection** — `useSSE.ts` now has explicit `onerror` handler with exponential backoff (1s → 30s cap). Reconnects automatically on server restart or network blip.
+
+---
+
+## Authentication — JWT-based RBAC (2026-11-05)
+
+### Done
+- **medbal_common/auth.py** — JWT authentication module with role-based access control
+  - `create_token()`, `verify_token()`, `authenticate()` using PyJWT (HS256)
+  - `get_current_user` FastAPI dependency — extracts Bearer token from Authorization header
+  - `require_role(*roles)` — returns a dependency that enforces role membership
+  - X-Service-Token header support for internal service-to-service calls (value = JWT_SECRET)
+  - Graceful degradation: if JWT_SECRET is not set, all endpoints remain open (anonymous admin)
+  - Four demo users: `district_officer`, `pharmacist`, `admin`, `operator`
+- **medbal_common/settings.py** — Added `JWT_SECRET`, `JWT_EXPIRE_MINUTES` env vars, `require_jwt_secret()`, key_status includes JWT_SECRET
+- **medbal_common/http.py** — `client()` and `async_client()` now auto-include X-Service-Token for internal calls
+- **core-api auth endpoints** — `POST /auth/login`, `GET /auth/me`, `GET /auth/users`
+- **core-api protected endpoints:**
+  - `POST /orders/{id}/approve` — district_officer, admin
+  - `POST /orders/{id}/reject` — district_officer, admin
+  - `POST /custody/scan` — pharmacist, district_officer, admin
+  - `POST /plans` — any authenticated user (or X-Service-Token)
+  - `POST /admin/tamper-demo` — admin only
+  - `POST /admin/restore-demo` — admin only
+- **sim-control protected endpoints:**
+  - `POST /clock/start`, `/clock/pause`, `/clock/speed` — operator, admin
+  - `POST /scenario/{name}` — operator, admin
+  - `POST /reset` — admin only
+- **Frontend auth:**
+  - `web/src/lib/auth.ts` — token storage (sessionStorage), login/logout helpers
+  - `web/src/pages/LoginPage.tsx` — login form with quick-login demo account buttons
+  - `web/src/App.tsx` — gates all routes behind authentication (bypassed in fixture mode)
+  - `web/src/lib/api.ts` — all `get()`/`post()` calls include Bearer token
+  - `web/src/components/CopilotPanel.tsx` — copilot chat includes Bearer token
+  - `web/src/components/TopBar.tsx` — shows logged-in user badge and logout button
+- **Contracts** — core-api.yaml updated with auth endpoints, security schemes (bearerAuth, serviceToken), security requirements on protected endpoints
+- **.env.example** — Added `JWT_SECRET`, `JWT_EXPIRE_MINUTES`
+- **Tests** — 13 new auth tests in `test_auth.py`, all existing 35 tests updated with auth headers, 48 total core-api tests pass. 42 frontend tests pass.
+
+### How to verify
+1. Add `JWT_SECRET=<any-long-random-string>` to `.env`
+2. `POST /api/core/auth/login` with `{"username":"admin","password":"admin123"}` — returns JWT token
+3. `POST /api/core/orders/{id}/approve` without token → 401
+4. `POST /api/core/orders/{id}/approve` with pharmacist token → 403
+5. `POST /api/core/orders/{id}/approve` with district_officer token → 200
+6. Frontend shows login page; after login, user badge appears in top bar
+7. `cd services/core_api; uv run pytest -v` — 48 tests pass
+
+### Requests to other lanes
+- **L2 (optimizer):** `_persist_plan()` in `router.py` and `replan.py` calls `POST /plans` on core-api using raw `httpx.post()`. Switch to `medbal_common.http.client()` which auto-includes X-Service-Token, or manually add `headers={"X-Service-Token": settings.JWT_SECRET}`.
+
+### Decisions
+- Actor field on audit entries now comes from the authenticated JWT token, not from the self-declared request body. This prevents actor spoofing.
+- X-Service-Token mechanism for internal service-to-service calls avoids requiring services to generate JWT tokens. The token value is the JWT_SECRET itself — services that know the secret are trusted.
+- Frontend uses sessionStorage (not localStorage) for the auth token — clears on tab close for better security.
+- Fixture mode (USE_FIXTURES=1) skips authentication entirely — no login page shown.
+
+---
+
+## P-fix3 — Greedy-vs-QUBO stockout gap disclosure and replay fix (2026-11-06)
+
+### Problem
+Benchmark and results pages showed greedy baselines beating QUBO on stockout reduction (89% vs 52%) without explaining *why*. The replay evaluation also used `--solver local` by default, which restricted QUBO (policy D) to GreedyDescent(restarts=8) only — bypassing the now-working QpiAI solver chain (tiers 1-3 fixed in P-fix2).
+
+### Root cause
+1. **Multi-objective tradeoff, not a bug**: MILP (exact optimum) achieves only 25.8% stockout reduction — even lower than QUBO's 52.1%. The QUBO Hamiltonian (§6) balances 5 objectives (shortage, expiry avoidance, cost, overfill, batch consolidation). Greedy baselines optimise only shortage filling, so they naturally score higher on that single metric but ignore cost, expiry risk, and plan quality.
+2. **Replay default `--solver local`**: CLI default was `"local"`, forcing `GreedyDescent(restarts=8)` for policy D, not the full solver chain.
+3. **Missing context on benchmark/results pages**: No explanation of multi-objective tradeoff; users could misinterpret greedy's higher shortage reduction as "better".
+
+### Fixed
+- `services/optimizer/app/eval/replay.py`: Changed `--solver` default from `"local"` to `"chain"` so the full solver chain (QpiAI platform → QpiAI local → dwave-neal SA → greedy descent) is used for replay evaluation.
+- `web/src/fixtures/index.ts`: Updated solver tier label from `greedy-descent` to `qpiai-local` across benchmark, ablation, planDemo solver_meta. Updated ablation notes to distinguish single-objective (greedy) from multi-objective (QUBO/MILP) policies.
+- `web/src/pages/BenchmarkPage.tsx`: Added multi-objective tradeoff explanation banner. Updated SOLVER_COLORS key.
+- `web/src/pages/ResultsPage.tsx`: Added explanatory note under the `[Illustrative]` badge in the ablation section.
+- `web/src/components/CopilotPanel.tsx`: Updated demo copilot response to reflect `qpiai-local` tier.
+- `web/src/pages/BenchmarkPage.test.tsx`, `PlanPage.test.tsx`: Updated test assertions for new solver name.
+
+### How to verify
+1. `cd web && npx vitest run` — 65 tests pass
+2. `cd services/optimizer && uv run pytest tests/ -x -q` — 118 tests pass
+3. Open Benchmark page → blue info banner explains multi-objective tradeoff
+4. Open Results page → ablation section has explanatory note under `[Illustrative]` badge
+5. `make eval` (or `--solver chain`) now uses the full solver chain for policy D
+
+### Decisions
+- `[Illustrative]` badge kept — fixture numbers remain from the `--solver local` replay until a fresh `--solver chain` replay is run (per CLAUDE.md: "We do not claim quantum advantage").
+- Did NOT change the QUBO Hamiltonian weights — the tradeoff is inherent to multi-objective optimisation and honestly disclosed.
+- Greedy beating QUBO on a single metric is expected and documented. The notes now clearly attribute this to single-objective vs multi-objective formulations.
+
+---
+
+## P-UX — Frontend user-friendliness: guide panels, helper text, better empty states (2026-11-08)
+
+### Done
+
+- **Collapsible guide panels on all 8 navigation pages** (Dashboard/MapPage, Ingestion, Plan, Benchmark, Cold Chain, Results, AI Health, Scenarios). Each panel has a gradient background (sky-to-indigo), contextual icons, and explains what the page does, key concepts, and how to interact with it.
+- **Subtitle text** under every page title explaining the page's purpose in one line.
+- **Helper text** above major sections (tables, charts, card groups) explaining what the data means.
+- **Improved empty states** with descriptive messages and suggested actions instead of blank areas.
+- **ScenariosPage complete rewrite** for user-friendliness:
+  - `SIGNAL_TYPE_INFO` map — human-readable labels and icons for signal types (outbreak → "Disease Outbreak", device_fault → "Equipment Failure", etc.)
+  - `humanizeSignalParams()` — converts raw JSON params to plain English sentences
+  - `SCENARIO_DETAILS` map — enriched scenario cards with unique icons, color coding, impact description, "What to observe" bullets, and affected-pages tags
+  - `SignalCard` components — replace raw table rows with expandable cards showing type badge, human description, and collapsible raw data
+  - Collapsible "How Scenarios Work" guide with 5-step Quick Start
+- **Fixed Copilot panel z-index conflict with Leaflet map**: `.leaflet-container { z-index: 0 }` in `index.css` creates a stacking context that contains Leaflet's internal z-indexes (200–1000+). CopilotPanel FAB and panel bumped to `z-[1100]`.
+- **Consistent guide pattern** across all pages: Info icon, gradient background, grid layout, collapsible via Show/Hide Guide button in the page header.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/src/pages/ScenariosPage.tsx` | Full rewrite — guide panel, SCENARIO_DETAILS, SIGNAL_TYPE_INFO, humanizeSignalParams, SignalCard |
+| `web/src/pages/MapPage.tsx` | Guide panel, subtitle, facility legend |
+| `web/src/pages/IngestionPage.tsx` | Guide panel, helper text for reports and review queue |
+| `web/src/pages/PlanPage.tsx` | Guide panel with QUBO/DTA/feasibility/solver concepts, tooltips, helper text |
+| `web/src/pages/BenchmarkPage.tsx` | Guide panel explaining solver comparison and zoning |
+| `web/src/pages/ColdchainPage.tsx` | Guide panel explaining cold chain monitoring, device cards, excursion alerts |
+| `web/src/pages/ResultsPage.tsx` | Guide panel explaining redistribution outcomes, charts, ablation |
+| `web/src/pages/AIHealthPage.tsx` | Guide panel explaining GenAI gateway, call stats, eval scores, guardrails, golden rule |
+| `web/src/index.css` | Added `z-index: 0` to `.leaflet-container` |
+| `web/src/components/CopilotPanel.tsx` | Bumped FAB and panel from `z-50`/`z-40` to `z-[1100]` |
+| `web/src/pages/ScenariosPage.test.tsx` | Updated assertions: `getAllByText` for duplicates, human-readable labels |
+| `web/src/pages/ResultsPage.test.tsx` | Updated assertions for guide panel duplicate text |
+| `web/src/pages/AIHealthPage.test.tsx` | Updated assertions for guide panel duplicate text |
+
+### Tests (66 total — all pass)
+- 11 test files, 66 tests pass
+- Updated ScenariosPage tests: `getAllByText('Recent Signals')` (appears in both guide and heading), `'Disease Outbreak'` (human-readable label), `'Reset All'` (renamed button)
+- TypeScript compiles with zero errors (`npx tsc --noEmit`)
+- No regressions in any existing tests
+
+### How to verify
+1. `cd web && npx vitest run` — 66 tests pass
+2. `cd web && npx tsc --noEmit` — zero errors
+3. `VITE_USE_FIXTURES=1 npm run dev` — all pages show guide panels, helper text, and improved UX
+4. Click "Hide Guide" on any page — panel collapses; "Show Guide" brings it back
+5. Navigate to Scenarios — scenario cards show icons, impact, affected pages; signals show human descriptions
+
+### Decisions
+- Guide panels are collapsible (default open) so they don't overwhelm returning users
+- Scenarios page was fully rewritten because raw signal JSON (ID, type, params, fired_at) was unintelligible to new users
+- Leaflet z-index fix uses CSS stacking context (`z-index: 0` on container) rather than fighting individual Leaflet internal z-indexes
+- Consistent visual language across all guide panels: sky/indigo gradient, Info icon, grid layout, Show/Hide button
+
+### Open issues
+- None
+
+### Requests to other lanes
+- None

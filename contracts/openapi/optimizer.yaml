@@ -272,7 +272,7 @@ components:
           type: number
         status:
           type: string
-          enum: [proposed, approved, rejected, dispatched, in_transit, delivered, cancelled]
+          enum: [proposed, approved, rejected, dispatched, in_transit, received, consumed, delivered, cancelled]
         temperature_req:
           type: string
           enum: [ambient, cold_chain]
@@ -346,18 +346,38 @@ components:
 
     Benchmark:
       type: object
-      required: [solver_tier, energy, solve_time_ms]
+      required: [plan_id, benchmark, gap_qubo_to_milp_pct, zoning]
       properties:
-        solver_tier:
+        plan_id:
           type: string
-        energy:
+        benchmark:
+          type: array
+          items:
+            $ref: "#/components/schemas/BenchmarkRow"
+        gap_qubo_to_milp_pct:
+          type: ["number", "null"]
+        zoning:
+          type: object
+          description: Zoning comparison (maxcut vs kmeans vs exact)
+
+    BenchmarkRow:
+      type: object
+      required: [solver, objective, shortage_reduction, expiry_avoided_inr, waste_moved, trips, time_ms]
+      properties:
+        solver:
+          type: string
+        objective:
           type: number
-        milp_energy:
-          type: ["number", "null"]
-        gap:
-          type: ["number", "null"]
-        solve_time_ms:
+        shortage_reduction:
+          type: number
+        expiry_avoided_inr:
+          type: number
+        waste_moved:
+          type: number
+        trips:
           type: integer
+        time_ms:
+          type: number
 
     WhyNot:
       type: object

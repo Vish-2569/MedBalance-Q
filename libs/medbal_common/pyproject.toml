@@ -12,6 +12,7 @@ dependencies = [
     "structlog>=24.0",
     "fastapi>=0.111",
     "uvicorn[standard]>=0.29",
+    "PyJWT>=2.8",
 ]
 
 [project.optional-dependencies]

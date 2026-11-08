@@ -88,7 +88,7 @@ export default function Sidebar() {
 
       <button
         onClick={() => setCollapsed(c => !c)}
-        className="mx-2 p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center"
+        className="mx-2 p-2 rounded-lg text-slate-500 hover:text-slate-600 hover:bg-slate-50 transition-colors flex items-center justify-center"
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}

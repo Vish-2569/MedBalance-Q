@@ -161,8 +161,14 @@ def _load_fixture_data():
     import random
     from pathlib import Path
 
-    fixtures_dir = Path(__file__).resolve().parents[2] / ".." / "contracts" / "fixtures"
-    fixtures_dir = fixtures_dir.resolve()
+    base = Path(__file__).resolve()
+    for level in (1, 3):
+        candidate = base.parents[level] / "contracts" / "fixtures"
+        if candidate.is_dir():
+            fixtures_dir = candidate
+            break
+    else:
+        fixtures_dir = base.parents[1] / "contracts" / "fixtures"
 
     snapshot = json.loads((fixtures_dir / "snapshot.json").read_text())
     facilities = [f for f in snapshot["facilities"] if f["id"] != "W0"]

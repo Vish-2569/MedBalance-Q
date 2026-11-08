@@ -21,8 +21,11 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("USE_FIXTURES", "0")
 os.environ.setdefault("SIM_START_DATE", "2026-11-01")
 os.environ.setdefault("SIM_DAY_SECONDS", "9999999")
+os.environ.setdefault("QR_HMAC_SECRET", "test-secret-for-ci")
+os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-ci-minimum-32bytes!")
 
 from medbal_common import audit
+from medbal_common.auth import create_token
 from medbal_common.db import get_engine, get_session_factory, session_scope
 
 SQLITE_SCHEMA = """
@@ -176,10 +179,11 @@ def _patch_db(db_engine, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _patch_hmac_secret(monkeypatch):
-    """Ensure QR_HMAC_SECRET is set so require_hmac_secret() doesn't raise."""
+def _patch_secrets(monkeypatch):
+    """Ensure secrets are set so require_*_secret() calls don't raise."""
     from medbal_common.settings import settings
     monkeypatch.setattr(settings, "QR_HMAC_SECRET", "test-hmac-secret-for-custody-tests")
+    monkeypatch.setattr(settings, "JWT_SECRET", "test-jwt-secret-for-ci-minimum-32bytes!")
 
 
 @pytest.fixture
@@ -238,3 +242,12 @@ def seed_data(db_engine):
         ))
         conn.commit()
     return True
+
+
+@pytest.fixture
+def auth_headers():
+    """Return auth headers for various roles."""
+    def _headers(role: str = "admin") -> dict[str, str]:
+        token_resp = create_token(role, role, f"Test {role}")
+        return {"Authorization": f"Bearer {token_resp.access_token}"}
+    return _headers

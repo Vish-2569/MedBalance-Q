@@ -12,7 +12,17 @@ from sqlalchemy import text
 
 from medbal_common.db import session_scope
 from medbal_common import audit
+from medbal_common.auth import create_token, CurrentUser
 from medbal_common.settings import settings
+
+
+_TEST_USER = CurrentUser(user_id="pharmacist", role="pharmacist", name="Test Pharmacist")
+_ADMIN_USER = CurrentUser(user_id="admin", role="admin", name="Test Admin")
+
+
+def _auth_headers(role: str = "admin") -> dict[str, str]:
+    token_resp = create_token(role, role, f"Test {role}")
+    return {"Authorization": f"Bearer {token_resp.access_token}"}
 
 
 def _make_token(order_id: str, secret: str | None = None) -> str:
@@ -97,7 +107,7 @@ def test_dispatch_from_approved(mock_pub, seed_order):
     import asyncio
 
     req = ScanRequest(token=seed_order, event="dispatch", actor="pharmacist")
-    result = asyncio.get_event_loop().run_until_complete(scan_custody(req))
+    result = asyncio.get_event_loop().run_until_complete(scan_custody(req, user=_TEST_USER))
     body = json.loads(result.body)
 
     assert body["event"] == "dispatch"
@@ -141,7 +151,7 @@ def test_cannot_dispatch_from_proposed(mock_pub, db_engine):
 
     req = ScanRequest(token=token, event="dispatch", actor="test")
     with pytest.raises(Exception) as exc_info:
-        asyncio.get_event_loop().run_until_complete(scan_custody(req))
+        asyncio.get_event_loop().run_until_complete(scan_custody(req, user=_TEST_USER))
     assert "409" in str(exc_info.value.status_code) or "Cannot dispatch" in str(exc_info.value.detail)
 
 
@@ -154,17 +164,17 @@ def test_full_lifecycle(mock_pub, seed_order):
     loop = asyncio.get_event_loop()
 
     r1 = loop.run_until_complete(scan_custody(
-        ScanRequest(token=seed_order, event="dispatch", actor="pharmacist")
+        ScanRequest(token=seed_order, event="dispatch", actor="pharmacist"), user=_TEST_USER
     ))
     assert json.loads(r1.body)["status"] == "dispatched"
 
     r2 = loop.run_until_complete(scan_custody(
-        ScanRequest(token=seed_order, event="receive", qty=100, actor="receiver")
+        ScanRequest(token=seed_order, event="receive", qty=100, actor="receiver"), user=_TEST_USER
     ))
     assert json.loads(r2.body)["status"] == "received"
 
     r3 = loop.run_until_complete(scan_custody(
-        ScanRequest(token=seed_order, event="consume", actor="nurse")
+        ScanRequest(token=seed_order, event="consume", actor="nurse"), user=_TEST_USER
     ))
     assert json.loads(r3.body)["status"] == "consumed"
 
@@ -177,7 +187,7 @@ def test_cannot_receive_from_approved(mock_pub, seed_order):
 
     req = ScanRequest(token=seed_order, event="receive", actor="test")
     with pytest.raises(Exception) as exc_info:
-        asyncio.get_event_loop().run_until_complete(scan_custody(req))
+        asyncio.get_event_loop().run_until_complete(scan_custody(req, user=_TEST_USER))
     assert "409" in str(exc_info.value.status_code) or "Cannot receive" in str(exc_info.value.detail)
 
 
@@ -191,7 +201,7 @@ def test_invalid_hmac_rejected(mock_pub, seed_order):
     bad_token = "0" * 64
     req = ScanRequest(token=bad_token, event="dispatch", actor="test")
     with pytest.raises(Exception) as exc_info:
-        asyncio.get_event_loop().run_until_complete(scan_custody(req))
+        asyncio.get_event_loop().run_until_complete(scan_custody(req, user=_TEST_USER))
     assert "403" in str(exc_info.value.status_code) or "404" in str(exc_info.value.status_code)
 
 
@@ -206,11 +216,11 @@ def test_qty_mismatch_deviation(mock_pub, seed_order):
     loop = asyncio.get_event_loop()
 
     loop.run_until_complete(scan_custody(
-        ScanRequest(token=seed_order, event="dispatch", actor="pharmacist")
+        ScanRequest(token=seed_order, event="dispatch", actor="pharmacist"), user=_TEST_USER
     ))
 
     r = loop.run_until_complete(scan_custody(
-        ScanRequest(token=seed_order, event="receive", qty=90, actor="receiver")
+        ScanRequest(token=seed_order, event="receive", qty=90, actor="receiver"), user=_TEST_USER
     ))
     body = json.loads(r.body)
     assert "deviations" in body
@@ -230,10 +240,10 @@ def test_custody_chain_populated(mock_pub, seed_order):
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(scan_custody(
-        ScanRequest(token=seed_order, event="dispatch", actor="pharmacist")
+        ScanRequest(token=seed_order, event="dispatch", actor="pharmacist"), user=_TEST_USER
     ))
     loop.run_until_complete(scan_custody(
-        ScanRequest(token=seed_order, event="receive", qty=100, actor="receiver")
+        ScanRequest(token=seed_order, event="receive", qty=100, actor="receiver"), user=_TEST_USER
     ))
 
     with session_scope() as s:
@@ -253,7 +263,7 @@ def test_audit_verify_ok_after_scan(mock_pub, seed_order):
     import asyncio
 
     asyncio.get_event_loop().run_until_complete(scan_custody(
-        ScanRequest(token=seed_order, event="dispatch", actor="pharmacist")
+        ScanRequest(token=seed_order, event="dispatch", actor="pharmacist"), user=_TEST_USER
     ))
 
     with session_scope() as s:
@@ -295,11 +305,12 @@ def test_api_custody_scan_dispatch(mock_pub, seed_order):
     from app.main import app
 
     client = TestClient(app)
+    headers = _auth_headers("pharmacist")
     resp = client.post("/custody/scan", json={
         "token": seed_order,
         "event": "dispatch",
         "actor": "pharmacist",
-    })
+    }, headers=headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "dispatched"
@@ -311,11 +322,12 @@ def test_api_custody_scan_invalid_token(mock_pub, seed_order):
     from app.main import app
 
     client = TestClient(app)
+    headers = _auth_headers("pharmacist")
     resp = client.post("/custody/scan", json={
         "token": "bad" * 21 + "x",
         "event": "dispatch",
         "actor": "test",
-    })
+    }, headers=headers)
     assert resp.status_code in (403, 404)
 
 
@@ -325,21 +337,23 @@ def test_api_audit_tamper_restore(mock_pub, seed_order):
     from app.main import app
 
     client = TestClient(app)
+    pharma_headers = _auth_headers("pharmacist")
+    admin_headers = _auth_headers("admin")
 
     client.post("/custody/scan", json={
         "token": seed_order, "event": "dispatch", "actor": "test",
-    })
+    }, headers=pharma_headers)
 
     verify1 = client.get("/audit/verify")
     assert verify1.json()["ok"] is True
 
-    tamper = client.post("/admin/tamper-demo", json={})
+    tamper = client.post("/admin/tamper-demo", json={}, headers=admin_headers)
     assert tamper.status_code == 200
 
     verify2 = client.get("/audit/verify")
     assert verify2.json()["ok"] is False
 
-    restore = client.post("/admin/restore-demo", json={})
+    restore = client.post("/admin/restore-demo", json={}, headers=admin_headers)
     assert restore.status_code == 200
 
     verify3 = client.get("/audit/verify")
@@ -352,12 +366,35 @@ def test_api_custody_chain(mock_pub, seed_order):
     from app.main import app
 
     client = TestClient(app)
+    headers = _auth_headers("pharmacist")
     client.post("/custody/scan", json={
         "token": seed_order, "event": "dispatch", "actor": "pharmacist",
-    })
+    }, headers=headers)
 
     resp = client.get("/custody/ORD-T1")
     assert resp.status_code == 200
     events = resp.json()
     assert len(events) >= 1
     assert events[0]["event_type"] == "dispatch"
+
+
+def test_api_resolve_qr_token(seed_order):
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    resp = client.post("/orders/resolve-qr-token", json={"token": seed_order})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["id"] == "ORD-T1"
+    assert data["dta_number"] == "DTA/BLR-U/2026/000099"
+    assert data["drug_code"] == "PCM"
+
+
+def test_api_resolve_qr_token_not_found(seed_order):
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    resp = client.post("/orders/resolve-qr-token", json={"token": "nonexistent-token"})
+    assert resp.status_code == 404

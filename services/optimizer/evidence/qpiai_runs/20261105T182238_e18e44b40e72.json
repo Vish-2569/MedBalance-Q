@@ -1,0 +1,30 @@
+{
+  "timestamp": "20261105T182238",
+  "n_vars": 2,
+  "offset": 0.0,
+  "q_hash": "e18e44b40e72",
+  "attempts": [
+    {
+      "tier": "qpiai-platform",
+      "time_ms": 3352.07,
+      "n_vars": 2,
+      "samples_returned": 0,
+      "energy": null,
+      "error": "Failed to create opt job: your organization does not have access to 'QUBO Solver' compute resource. Please contact your administrator to allocate quota for this resource"
+    },
+    {
+      "tier": "qpiai-local",
+      "time_ms": 1279.13,
+      "n_vars": 2,
+      "samples_returned": 1,
+      "energy": -1.0,
+      "error": null
+    }
+  ],
+  "winner": {
+    "tier": "qpiai-local",
+    "energy": -1.0,
+    "time_ms": 1279.13,
+    "samples_count": 1
+  }
+}

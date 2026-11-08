@@ -75,7 +75,7 @@
 | 9 | ~~**CopilotPanel fixture uses non-existent tool names**~~ | `web/src/components/CopilotPanel.tsx` | **FIXED**: Replaced all 4 fake tool names (`check_feasibility`, `get_positions`, `get_coldchain`, `get_benchmark`) with real names from TOOL_MAP (`why_not`, `get_stock_position`, `get_coldchain_status`, `compare_policies`). Args/results match executor shapes. All responses prefixed `[Demo response]`. Fabricated "97%/72%" claims replaced with replay evidence. |
 | 10 | "Expiry Avoided" KPI in Results page | `web/src/pages/ResultsPage.tsx` | The replay proves all policies have identical expired INR (2,744). Transfers do not reduce expiry in the model. | Clarify: "Expiry Avoided = at-risk units moved before expiry date, not actual waste prevented." |
 | 11 | RTM is empty | `docs/RTM.md` | Contains only a template row. No traceability from requirements to test evidence. | Populate RTM with actual requirement-to-evidence mapping. |
-| 12 | Demo script is a placeholder | `docs/DEMO_SCRIPT.md` | Contains only stub headings, no actual demo steps. | Write actual demo walkthrough with expected outputs. |
+| 12 | ~~Demo script is a placeholder~~ | `docs/DEMO_SCRIPT.md` | **FIXED**: Full 12-step demo walkthrough with prerequisites, talk tracks per step, technical judge points table, and teardown. | Fixed — complete demo script with expected outputs. |
 | 13 | "Violations: 0" badge on Plan page | `web/src/pages/PlanPage.tsx` | The validator repairs violations before reporting. Raw QUBO output averages 1.3 violations per seed (replay). Badge shows post-repair count. | Show "0 (1 repaired)" or similar to be transparent. |
 | 14 | **No "simulated data" banner on web UI** | All web pages | DTA PDF has "Synthetic demo data" footer, but web pages show no persistent disclaimer. Live-mode numbers could be mistaken for real district data. | Add "Simulated district data" disclaimer in TopBar or footer. |
 | 15 | ~~**Fixture result metrics fabricated**~~ | `web/src/fixtures/index.ts:323-340` | **FIXED**: All metrics now sourced from replay evidence JSON. stockout_days_before=786, after=377, shortage_reduction=0.521, ci from replay CIs. | Fixed — exact numbers from replay_20261030_035113.json. |
@@ -100,7 +100,7 @@
 | D12 | Copilot with tool-calling agent | **Partially** | 8 tools defined and tested in fixture mode (24 tests). SSE streaming works. Live LLM tool-calling failed due to Gemini quota. Fallback returns domain lookups labelled as demo. |
 | D13 | 28-day replay evaluation | **Demonstrated** | `evidence/eval_reports/replay_20261030_035113.json` — 20 seeds × 28 days × 5 policies + 3 ablations. Reproducible results with CIs. Charts generated. |
 | D14 | Forecast with Holt-Winters + LLM context | **Partially** | Holt-Winters baseline works (28 tests). LLM context multiplier path exists but live LLM never ran successfully due to quota. Deterministic fallback from signal params is the actual production path. |
-| D15 | Web dashboard (10 pages) | **Demonstrated** | 10 pages confirmed: Map, Ingestion, Plan, Benchmark, Cold Chain, Results, AI Health, Scenarios, Order Detail, Scan. 16 Playwright E2E tests. `npm run build` passes. |
+| D15 | Web dashboard (10 pages) with guided UX | **Demonstrated** | 10 pages confirmed: Map, Ingestion, Plan, Benchmark, Cold Chain, Results, AI Health, Scenarios, Order Detail, Scan. All 8 navigation pages have collapsible guide panels, helper text, and improved empty states for new users. 66 vitest tests + 16 Playwright E2E tests pass. `npm run build` and `npx tsc --noEmit` clean. |
 | D16 | ~410 automated tests | **Demonstrated** | Per docs/QA: ~410 tests across unit (299), contract (24), integration (29), E2E (16), eval (10). Multiple test runs documented in execution_report.md. |
 | D17 | RTM traceability | **Missing** | `docs/RTM.md` contains only a template row. No requirement-to-evidence mapping exists. |
 | D18 | Evidence trail (solver JSON, eval reports) | **Demonstrated** | 983 solver evidence JSONs in `evidence/qpiai_runs/`. 5 replay reports + 3 AI eval reports in `evidence/eval_reports/`. Every solver attempt logged including failures. |
@@ -138,7 +138,7 @@ The following items should be added to the PROGRESS.md "Open issues" or a new "F
 
 ### Documentation gaps
 1. **RTM empty** — `docs/RTM.md` has only a template row. Must populate before judging.
-2. **Demo script placeholder** — `docs/DEMO_SCRIPT.md` has no real content.
+2. ~~**Demo script placeholder**~~ — **FIXED**: `docs/DEMO_SCRIPT.md` now contains a full 12-step demo walkthrough with prerequisites, talk tracks, technical judge points, and teardown instructions.
 
 ### Honesty / disclosure
 3. **QpiAI tiers 1-3 never ran** — All 983 evidence files show tier 4 only. Solver badges in UI imply availability.

@@ -111,8 +111,8 @@ def test_audit_verify(client, seed_data):
     assert "entries" in data
 
 
-def test_custody_scan_requires_fields(client):
-    r = client.post("/custody/scan", json={})
+def test_custody_scan_requires_fields(client, auth_headers):
+    r = client.post("/custody/scan", json={}, headers=auth_headers("pharmacist"))
     assert r.status_code == 422
 
 

@@ -53,10 +53,10 @@ paths:
                   model:
                     type: string
 
-  /docs/dta/{order_id}:
-    post:
-      operationId: generateDta
-      summary: Generate a Drug Transfer Advice PDF
+  /dta/{order_id}/pdf:
+    get:
+      operationId: getDtaPdf
+      summary: Generate and return a Drug Transfer Advice PDF
       parameters:
         - name: order_id
           in: path
@@ -141,6 +141,25 @@ paths:
                         type: string
                       smart:
                         type: string
+                  prompts_loaded:
+                    type: integer
+                  demo_mode:
+                    type: string
+                  stats:
+                    type: object
+                    properties:
+                      calls_24h:
+                        type: integer
+                      cache_hit_rate:
+                        type: number
+                      p95_ms:
+                        type: number
+                      fallbacks:
+                        type: integer
+                      schema_failures:
+                        type: integer
+                      firewall_blocks:
+                        type: integer
 
   /health:
     get:

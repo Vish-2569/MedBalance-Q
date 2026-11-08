@@ -11,14 +11,24 @@ from medbal_common.settings import settings
 _IST = timezone(timedelta(hours=5, minutes=30))
 
 
+def _today_ist() -> date:
+    return datetime.now(_IST).date()
+
+
 class ClockState:
     def __init__(self):
         self.start_date = date.fromisoformat(settings.SIM_START_DATE)
-        self.speed = float(settings.SIM_DAY_SECONDS)
-        self.running = False
-        self._start_wall: float | None = None
-        self._paused_at_day = 0
-        self._last_published_day = -1
+        self._base_speed = float(settings.SIM_DAY_SECONDS)
+        self._multiplier = 1.0
+        self._secs_per_day = self._base_speed
+
+        real_today = _today_ist()
+        initial_days = max(0, (real_today - self.start_date).days)
+
+        self.running = True
+        self._start_wall: float = time.monotonic() - (initial_days * self._secs_per_day)
+        self._paused_at_day = initial_days
+        self._last_published_day = initial_days - 1
 
     @property
     def day_index(self) -> int:
@@ -27,7 +37,7 @@ class ClockState:
         if self._start_wall is None:
             return 0
         elapsed = time.monotonic() - self._start_wall
-        return int(elapsed / max(self.speed, 0.01))
+        return int(elapsed / max(self._secs_per_day, 0.01))
 
     @property
     def sim_date(self) -> date:
@@ -41,7 +51,7 @@ class ClockState:
     def start(self):
         if self.running:
             return
-        self._start_wall = time.monotonic() - (self._paused_at_day * self.speed)
+        self._start_wall = time.monotonic() - (self._paused_at_day * self._secs_per_day)
         self.running = True
 
     def pause(self):
@@ -50,21 +60,28 @@ class ClockState:
         self._paused_at_day = self.day_index
         self.running = False
 
-    def set_speed(self, s: float):
+    def set_speed(self, multiplier: float):
         current_day = self.day_index
-        self.speed = max(s, 0.01)
+        self._multiplier = max(multiplier, 0.1)
+        self._secs_per_day = self._base_speed / self._multiplier
         if self.running:
-            self._start_wall = time.monotonic() - (current_day * self.speed)
+            self._start_wall = time.monotonic() - (current_day * self._secs_per_day)
         else:
             self._paused_at_day = current_day
 
     def reset(self, seed: int | None = None):
-        self.running = False
         self.start_date = date.fromisoformat(settings.SIM_START_DATE)
-        self.speed = float(settings.SIM_DAY_SECONDS)
-        self._start_wall = None
-        self._paused_at_day = 0
-        self._last_published_day = -1
+        self._base_speed = float(settings.SIM_DAY_SECONDS)
+        self._multiplier = 1.0
+        self._secs_per_day = self._base_speed
+
+        real_today = _today_ist()
+        initial_days = max(0, (real_today - self.start_date).days)
+
+        self.running = True
+        self._start_wall = time.monotonic() - (initial_days * self._secs_per_day)
+        self._paused_at_day = initial_days
+        self._last_published_day = initial_days - 1
 
     def to_dict(self) -> dict:
         d = self.sim_date
@@ -73,7 +90,7 @@ class ClockState:
             "date": d.isoformat(),
             "sim_time": self.sim_time.isoformat(),
             "datetime": self.sim_time.isoformat(),
-            "speed": self.speed,
+            "speed": self._multiplier,
             "running": self.running,
             "day_index": self.day_index,
         }

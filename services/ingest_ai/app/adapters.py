@@ -1,3 +1,4 @@
+
 """Hospital report adapters: deterministic parsers for FHIR/CSV, raw storage for Chat/Text."""
 from __future__ import annotations
 
@@ -5,7 +6,8 @@ import csv
 import io
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+
+from medbal_common import clock
 
 
 @dataclass
@@ -21,6 +23,7 @@ class ExtractionItem:
 
     grounding_score: int = 0
     grounding_method: str = ""
+    extraction_method: str = "genai"
 
     def to_dict(self) -> dict:
         d = {
@@ -32,6 +35,7 @@ class ExtractionItem:
             "unit": self.unit,
             "confidence": self.confidence,
             "flags": self.flags,
+            "extraction_method": self.extraction_method,
         }
         if self.grounding_score:
             d["grounding_score"] = self.grounding_score
@@ -46,15 +50,22 @@ class StockReport:
     format: str
     items: list[ExtractionItem]
     raw_text: str | None = None
+    extraction_method: str | None = None
+    extraction_warning: str | None = None
 
     def to_dict(self) -> dict:
-        return {
+        report = {
             "facility_code": self.facility_code,
             "reported_at": self.reported_at,
             "format": self.format,
             "raw_text": self.raw_text,
             "items": [i.to_dict() for i in self.items],
         }
+        if self.extraction_method:
+            report["extraction_method"] = self.extraction_method
+        if self.extraction_warning:
+            report["extraction_warning"] = self.extraction_warning
+        return report
 
 
 class ReportAdapter(ABC):
@@ -71,7 +82,7 @@ class FhirAdapter(ReportAdapter):
             import json
             payload = json.loads(payload)
 
-        reported_at = payload.get("reportedDateTime", datetime.now().isoformat())
+        reported_at = payload.get("reportedDateTime", clock.now().isoformat())
         items: list[ExtractionItem] = []
 
         for listing in payload.get("inventoryListing", []):
@@ -150,7 +161,7 @@ class CsvAdapter(ReportAdapter):
 
         return StockReport(
             facility_code=facility_code,
-            reported_at=datetime.now().isoformat(),
+            reported_at=clock.now().isoformat(),
             format="csv",
             items=items,
             raw_text=payload,
@@ -161,13 +172,18 @@ class ChatAdapter(ReportAdapter):
     """Raw storage for Kannada+English chat messages (H3). LLM extraction in P08b."""
 
     def parse(self, facility_code: str, payload: dict | str) -> StockReport:
-        raw = payload if isinstance(payload, str) else str(payload)
+        if isinstance(payload, dict):
+            raw = str(payload.get("body") or "")
+            reported_at = str(payload.get("date") or clock.now().isoformat())
+        else:
+            raw = payload
+            reported_at = clock.now().isoformat()
         return StockReport(
             facility_code=facility_code,
-            reported_at=datetime.now().isoformat(),
+            reported_at=reported_at,
             format="chat",
             items=[],
-            raw_text=raw,
+            raw_text=_repair_utf8_mojibake(raw),
         )
 
 
@@ -175,14 +191,28 @@ class TextAdapter(ReportAdapter):
     """Raw storage for messy English text reports (H4). LLM extraction in P08b."""
 
     def parse(self, facility_code: str, payload: dict | str) -> StockReport:
-        raw = payload if isinstance(payload, str) else str(payload)
+        if isinstance(payload, dict):
+            raw = str(payload.get("body") or "")
+            reported_at = str(payload.get("date") or clock.now().isoformat())
+        else:
+            raw = payload
+            reported_at = clock.now().isoformat()
         return StockReport(
             facility_code=facility_code,
-            reported_at=datetime.now().isoformat(),
+            reported_at=reported_at,
             format="text",
             items=[],
-            raw_text=raw,
+            raw_text=_repair_utf8_mojibake(raw),
         )
+
+
+def _repair_utf8_mojibake(raw: str) -> str:
+    if "à²" not in raw and "à³" not in raw:
+        return raw
+    try:
+        return raw.encode("latin-1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return raw
 
 
 ADAPTER_REGISTRY: dict[str, ReportAdapter] = {

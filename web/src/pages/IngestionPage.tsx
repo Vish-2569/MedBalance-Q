@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FileInput, AlertTriangle, Check, X, Clock, ChevronDown, ChevronUp,
-  Languages, Eye, Loader2, Pencil,
+  Languages, Eye, Loader2, Pencil, Download, RefreshCw, Sparkles,
+  Info, HelpCircle, ArrowRight,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { cn, shortDate } from '@/lib/utils';
@@ -22,24 +23,115 @@ function confidenceChip(c: number) {
 }
 
 export default function IngestionPage() {
+  const queryClient = useQueryClient();
   const { data: reports = [], isLoading, error: reportsError } = useQuery({ queryKey: ['reports'], queryFn: () => api.getReports() });
   const { data: reviews = [], error: reviewsError } = useQuery({ queryKey: ['reviews'], queryFn: api.getReviews });
+  const demoSeedStarted = useRef(false);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [reviewTarget, setReviewTarget] = useState<ReviewItem | null>(null);
+  const demoMutation = useMutation({
+    mutationFn: api.seedDemoReports,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
+        queryClient.invalidateQueries({ queryKey: ['reviews'] }),
+      ]);
+    },
+  });
+  const seedDemoReports = demoMutation.mutate;
+  const pullMutation = useMutation({
+    mutationFn: api.pullReports,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['reports'] }),
+        queryClient.invalidateQueries({ queryKey: ['reviews'] }),
+      ]);
+    },
+  });
+
+  const hasExtractedItems = reports.some(report => report.items.length > 0);
+  useEffect(() => {
+    if (!isLoading && !reportsError && !hasExtractedItems && !demoSeedStarted.current) {
+      demoSeedStarted.current = true;
+      seedDemoReports();
+    }
+  }, [isLoading, reportsError, hasExtractedItems, seedDemoReports]);
 
   const pending = reviews.filter(r => r.status === 'pending');
   const flagged = reports.filter(r => r.status === 'flagged').length;
 
-  if (isLoading) return <div className="flex-1 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>;
+  if (isLoading) return <div className="flex-1 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-slate-500" /></div>;
 
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
-      <h1 className="text-xl font-semibold text-slate-800">Ingestion & Review</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800">Ingestion & Review</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Pull synthetic hospital inventory, extract stock items, and review flagged data.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => demoMutation.mutate()}
+            disabled={demoMutation.isPending}
+            className="inline-flex items-center gap-2 rounded-lg border border-teal-200 bg-white px-4 py-2.5 text-sm font-semibold text-teal-800 shadow-sm transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {demoMutation.isPending
+              ? <RefreshCw className="h-4 w-4 animate-spin" />
+              : <Sparkles className="h-4 w-4" />}
+            {demoMutation.isPending ? 'Loading demo samples…' : 'Load demo samples'}
+          </button>
+          <button
+            onClick={() => pullMutation.mutate()}
+            disabled={pullMutation.isPending}
+            className="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {pullMutation.isPending
+              ? <RefreshCw className="h-4 w-4 animate-spin" />
+              : <Download className="h-4 w-4" />}
+            {pullMutation.isPending ? 'Pulling hospital reports…' : 'Pull hospital reports'}
+          </button>
+        </div>
+      </div>
       {(reportsError || reviewsError) && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {(reportsError ?? reviewsError) instanceof Error
             ? (reportsError ?? reviewsError)?.message
             : 'Could not load ingestion data.'}
+        </div>
+      )}
+      {pullMutation.error && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          Could not pull hospital reports: {pullMutation.error.message}
+        </div>
+      )}
+      {demoMutation.error && (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          Could not load demo reports: {demoMutation.error.message}
+        </div>
+      )}
+      {demoMutation.data && (
+        <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-800">
+          Loaded {demoMutation.data.triggered} synthetic demo reports · {demoMutation.data.reports.reduce((total, report) => total + report.items, 0)} extracted items.
+        </div>
+      )}
+      {pullMutation.data && (
+        <div className={cn(
+          'rounded-lg border p-3 text-sm',
+          pullMutation.data.errors.length
+            ? 'border-amber-200 bg-amber-50 text-amber-800'
+            : 'border-teal-200 bg-teal-50 text-teal-800',
+        )}>
+          Pulled {pullMutation.data.triggered} report{pullMutation.data.triggered === 1 ? '' : 's'}
+          {pullMutation.data.reports.length > 0 && (
+            <> · {pullMutation.data.reports.reduce((total, report) => total + report.items, 0)} inventory items found</>
+          )}
+          {pullMutation.data.errors.map(error => (
+            <p key={error.facility_code} className="mt-1">
+              {error.facility_code}: {error.error}
+            </p>
+          ))}
         </div>
       )}
 
@@ -52,7 +144,7 @@ export default function IngestionPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Reports Received" value={reports.length} icon={FileInput} />
         <StatCard label="Flagged" value={flagged} icon={AlertTriangle} color="text-amber-600" />
         <StatCard label="Pending Reviews" value={pending.length} icon={Clock} color="text-red-600" />
@@ -73,9 +165,9 @@ export default function IngestionPage() {
           ))}
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2 py-12">
-          <FileInput className="w-10 h-10" />
-          <p className="text-sm">No reports ingested yet. Run the simulation and pull reports.</p>
+        <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-2 py-12">
+          <Sparkles className="w-10 h-10" />
+          <p className="text-sm">No reports yet. Load demo samples or pull from connected hospitals.</p>
         </div>
       )}
 
@@ -125,7 +217,7 @@ export default function IngestionPage() {
                           )}
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400">clean</span>
+                        <span className="text-xs text-slate-500">clean</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-center">
@@ -137,7 +229,7 @@ export default function IngestionPage() {
                           <ReviewActions review={r} onCorrect={() => setReviewTarget(r)} />
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400">{r.resolved_by ?? '—'}</span>
+                        <span className="text-xs text-slate-500">{r.resolved_by ?? '—'}</span>
                       )}
                     </td>
                   </tr>
@@ -170,8 +262,13 @@ function ReportCard({ report, expanded, onToggle }: {
     <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
       <button onClick={onToggle} className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors">
         <div className="flex items-center gap-3">
-          <FileInput className="w-4 h-4 text-slate-400" />
+          <FileInput className="w-4 h-4 text-slate-500" />
           <span className="font-medium text-slate-800">{report.facility_code}</span>
+          {report.is_demo && (
+            <span className="text-xs px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">
+              Synthetic demo
+            </span>
+          )}
           <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">
             {CHANNEL_LABEL[channel] ?? channel}
           </span>
@@ -189,15 +286,38 @@ function ReportCard({ report, expanded, onToggle }: {
           )}>
             {report.status}
           </span>
+          {report.extraction_method === 'genai' && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+              GenAI extracted
+            </span>
+          )}
+          {report.extraction_method === 'deterministic_fallback' && (
+            <span
+              title={report.extraction_warning}
+              className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200"
+            >
+              Offline extraction
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500">{report.items?.length ?? 0} items</span>
-          {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          {expanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
         </div>
       </button>
 
       {expanded && (
         <div className="border-t border-slate-100">
+          {report.extraction_warning && (
+            <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {report.extraction_warning}
+            </div>
+          )}
+          {report.gate_error && (
+            <div role="alert" className="mx-4 mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {report.gate_error}
+            </div>
+          )}
           <div className="flex">
             {/* Raw text panel */}
             {report.raw_text && (
@@ -220,7 +340,7 @@ function ReportCard({ report, expanded, onToggle }: {
               {report.items && report.items.length > 0 ? (
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-slate-400">
+                    <tr className="text-slate-500">
                       <th className="text-left py-1">Drug</th>
                       <th className="text-right py-1">Qty</th>
                       <th className="text-left py-1">Batch</th>
@@ -247,7 +367,7 @@ function ReportCard({ report, expanded, onToggle }: {
                   </tbody>
                 </table>
               ) : (
-                <p className="text-xs text-slate-400 italic">No items extracted</p>
+                <p className="text-xs text-slate-500 italic">No items extracted</p>
               )}
             </div>
           </div>
@@ -339,8 +459,8 @@ function ReviewModal({ review, onClose }: { review: ReviewItem; onClose: () => v
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-slate-500 block mb-1">Drug Code (verified catalog)</label>
-            <select value={drugCode} onChange={e => setDrugCode(e.target.value)}
+            <label htmlFor="review-drug-code" className="text-xs font-medium text-slate-500 block mb-1">Drug Code (verified catalog)</label>
+            <select id="review-drug-code" value={drugCode} onChange={e => setDrugCode(e.target.value)}
               disabled={drugsLoading || candidateCodes.length === 0}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm disabled:bg-slate-50">
               <option value="">Select a drug code...</option>
@@ -351,13 +471,13 @@ function ReviewModal({ review, onClose }: { review: ReviewItem; onClose: () => v
             )}
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500 block mb-1">Quantity</label>
-            <input type="number" min="1" step="1" value={qty} onChange={e => setQty(e.target.value)}
+            <label htmlFor="review-qty" className="text-xs font-medium text-slate-500 block mb-1">Quantity</label>
+            <input id="review-qty" type="number" min="1" step="1" value={qty} onChange={e => setQty(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="text-xs font-medium text-slate-500 block mb-1">Expiry (YYYY-MM-DD)</label>
-            <input type="date" value={expiry} onChange={e => setExpiry(e.target.value)}
+            <label htmlFor="review-expiry" className="text-xs font-medium text-slate-500 block mb-1">Expiry (YYYY-MM-DD)</label>
+            <input id="review-expiry" type="date" value={expiry} onChange={e => setExpiry(e.target.value)}
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
           </div>
         </div>
@@ -382,7 +502,7 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: n
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-3">
       <div className="flex items-center gap-2 mb-1">
-        <Icon className="w-4 h-4 text-slate-400" />
+        <Icon className="w-4 h-4 text-slate-500" />
         <span className="text-xs text-slate-500 font-medium">{label}</span>
       </div>
       <p className={cn('text-2xl font-bold', color ?? 'text-slate-800')}>{value}</p>

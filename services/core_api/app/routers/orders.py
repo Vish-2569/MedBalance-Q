@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -10,14 +10,19 @@ from medbal_common.db import session_scope
 from medbal_common.clock import now
 from medbal_common.logging import get_logger
 from medbal_common import audit, bus
+from medbal_common.auth import CurrentUser, require_role
 
-from ..queries import list_orders, get_order, approve_order, reject_order
+from ..queries import list_orders, get_order, get_order_by_qr_token, approve_order, reject_order
 
 log = get_logger("core.orders")
 
 router = APIRouter()
 
 GENAI_URL = "http://genai:8003"
+
+
+class ResolveTokenBody(BaseModel):
+    token: str
 
 
 class RejectBody(BaseModel):
@@ -27,6 +32,15 @@ class RejectBody(BaseModel):
 
 class ApproveBody(BaseModel):
     actor: str = "district_officer"
+
+
+@router.post("/orders/resolve-qr-token")
+async def resolve_qr_token(body: ResolveTokenBody):
+    with session_scope() as s:
+        order = get_order_by_qr_token(s, body.token)
+    if not order:
+        raise HTTPException(404, "No order found for this token")
+    return JSONResponse(order)
 
 
 @router.get("/orders")
@@ -45,8 +59,12 @@ async def get_order_by_id(order_id: str):
 
 
 @router.post("/orders/{order_id}/approve")
-async def approve(order_id: str, body: ApproveBody | None = None):
-    actor = body.actor if body else "district_officer"
+async def approve(
+    order_id: str,
+    body: ApproveBody | None = None,
+    user: CurrentUser = Depends(require_role("district_officer", "admin")),
+):
+    actor = user.user_id
     ts = now()
     with session_scope() as s:
         existing = get_order(s, order_id)
@@ -73,8 +91,13 @@ async def approve(order_id: str, body: ApproveBody | None = None):
 
 
 @router.post("/orders/{order_id}/reject")
-async def reject(order_id: str, body: RejectBody):
+async def reject(
+    order_id: str,
+    body: RejectBody,
+    user: CurrentUser = Depends(require_role("district_officer", "admin")),
+):
     ts = now()
+    actor = user.user_id
     with session_scope() as s:
         existing = get_order(s, order_id)
         if not existing:
@@ -83,7 +106,7 @@ async def reject(order_id: str, body: RejectBody):
             raise HTTPException(409, f"Order status is {existing['status']}, cannot reject")
 
         order = reject_order(s, order_id, body.reason, ts)
-        audit.append(s, body.actor, "order.rejected", "order", order_id,
+        audit.append(s, actor, "order.rejected", "order", order_id,
                      {"old_status": "proposed", "new_status": "rejected",
                       "reason": body.reason})
 
@@ -92,7 +115,7 @@ async def reject(order_id: str, body: RejectBody):
         "plan_id": order["plan_id"],
         "old_status": "proposed",
         "new_status": "rejected",
-        "actor": body.actor,
+        "actor": actor,
     })
     return JSONResponse(order)
 

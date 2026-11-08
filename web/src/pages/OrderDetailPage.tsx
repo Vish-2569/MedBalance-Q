@@ -56,7 +56,7 @@ export default function OrderDetailPage() {
     enabled: !!id,
   });
 
-  const { data: regret = [], isLoading: regretLoading } = useQuery<RegretEntry[]>({
+  const { data: regret = [], isLoading: regretLoading, error: regretError } = useQuery<RegretEntry[]>({
     queryKey: ['regret', id],
     queryFn: () => api.getRegret(id!),
     enabled: !!id,
@@ -86,8 +86,10 @@ export default function OrderDetailPage() {
   });
 
   const rejectOrder = () => {
-    const reason = window.prompt('Enter a reason for rejecting this transfer order:');
-    if (reason?.trim()) rejectMut.mutate(reason.trim());
+    const reason = window.prompt('Enter a reason for rejecting this transfer order (max 500 chars):');
+    if (!reason?.trim()) return;
+    if (reason.trim().length > 500) { alert('Reason must be 500 characters or fewer.'); return; }
+    rejectMut.mutate(reason.trim());
   };
 
   const allCustody = order?.custody_events ?? custody;
@@ -103,7 +105,7 @@ export default function OrderDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-slate-400">
+      <div className="flex-1 flex items-center justify-center text-slate-500">
         <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading order...
       </div>
     );
@@ -111,7 +113,7 @@ export default function OrderDetailPage() {
 
   if (error || !order) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3">
+      <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3">
         <AlertTriangle className="w-8 h-8" />
         <p>Failed to load order {id}.</p>
         <Link to="/plan" className="text-teal-600 hover:underline text-sm">Back to Plan</Link>
@@ -148,15 +150,15 @@ export default function OrderDetailPage() {
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <span className="font-medium">{facName(order.src_facility_id)}</span>
-              <ArrowRight className="w-4 h-4 text-slate-400" />
+              <ArrowRight className="w-4 h-4 text-slate-500" />
               <span className="font-medium">{facName(order.dst_facility_id)}</span>
             </div>
           </div>
           <div className="text-right text-sm text-slate-500">
             <p className="font-medium text-slate-700">{order.drug_name}</p>
-            <p>{order.qty} units &middot; Batch {order.batch_no}</p>
+            <p>{order.qty} units (usable: {order.usable}) &middot; Batch {order.batch_no}</p>
             <p className="text-xs mt-1">Created {shortDate(order.created_at ?? '')}</p>
-            <p className="text-xs text-slate-400">Score: {order.score.toFixed(2)}</p>
+            <p className="text-xs text-slate-500">Score: {order.score.toFixed(2)}</p>
           </div>
         </div>
 
@@ -201,7 +203,7 @@ export default function OrderDetailPage() {
         {order.narration ? (
           <p className="text-sm text-slate-600 leading-relaxed">{order.narration}</p>
         ) : (
-          <p className="text-sm text-slate-400 italic">No narration available.</p>
+          <p className="text-sm text-slate-500 italic">No narration available.</p>
         )}
       </div>
 
@@ -217,11 +219,13 @@ export default function OrderDetailPage() {
       <div className="bg-white rounded-lg border border-slate-200 p-5">
         <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-3">Regret Alternatives</h3>
         {regretLoading ? (
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
+          <div className="flex items-center gap-2 text-slate-500 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading...
           </div>
+        ) : regretError ? (
+          <p role="alert" className="text-sm text-red-600">Could not load alternatives: {regretError.message}</p>
         ) : regret.length === 0 ? (
-          <p className="text-sm text-slate-400 italic">No alternatives evaluated.</p>
+          <p className="text-sm text-slate-500 italic">No alternatives evaluated.</p>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[500px]">
@@ -258,7 +262,7 @@ export default function OrderDetailPage() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">DTA Voucher</h3>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 mt-1">
               {isApprovedOrBeyond
                 ? 'Download the Drug Transfer Advice voucher as PDF.'
                 : 'Voucher available after approval.'}
@@ -271,7 +275,7 @@ export default function OrderDetailPage() {
               'flex items-center gap-2 px-4 py-2 text-sm rounded-lg font-medium',
               isApprovedOrBeyond
                 ? 'bg-teal-600 text-white hover:bg-teal-700'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed',
+                : 'bg-slate-100 text-slate-500 cursor-not-allowed',
             )}
           >
             <Download className="w-4 h-4" />
@@ -283,11 +287,11 @@ export default function OrderDetailPage() {
       {/* Custody Timeline */}
       <div className="bg-white rounded-lg border border-slate-200 p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Truck className="w-4 h-4 text-slate-400" />
+          <Truck className="w-4 h-4 text-slate-500" />
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Custody Timeline</h3>
         </div>
         {custodyLoading ? (
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
+          <div className="flex items-center gap-2 text-slate-500 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading...
           </div>
         ) : custodyError ? (
@@ -297,18 +301,18 @@ export default function OrderDetailPage() {
         ) : allCustody.length > 0 ? (
           <CustodyTimeline events={allCustody} />
         ) : (
-          <p className="text-sm text-slate-400 italic">No custody events recorded yet.</p>
+          <p className="text-sm text-slate-500 italic">No custody events recorded yet.</p>
         )}
       </div>
 
       {/* Provenance Graph */}
       <div className="bg-white rounded-lg border border-slate-200 p-5">
         <div className="flex items-center gap-2 mb-4">
-          <Package className="w-4 h-4 text-slate-400" />
+          <Package className="w-4 h-4 text-slate-500" />
           <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Provenance Graph</h3>
         </div>
         {provLoading ? (
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
+          <div className="flex items-center gap-2 text-slate-500 text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading...
           </div>
         ) : provError ? (
@@ -318,7 +322,7 @@ export default function OrderDetailPage() {
         ) : provenance && provenance.nodes.length > 0 ? (
           <ProvenanceSVG nodes={provenance.nodes} edges={provenance.edges} />
         ) : (
-          <p className="text-sm text-slate-400 italic">No provenance data available.</p>
+          <p className="text-sm text-slate-500 italic">No provenance data available.</p>
         )}
       </div>
     </div>
@@ -354,7 +358,7 @@ function CustodyTimeline({ events }: { events: CustodyEvent[] }) {
                 )}>
                   {evt.event_type}
                 </span>
-                <span className="text-slate-400 text-xs">
+                <span className="text-slate-500 text-xs">
                   {new Date(evt.timestamp).toLocaleString('en-IN')}
                 </span>
                 {deviations.length > 0 && (

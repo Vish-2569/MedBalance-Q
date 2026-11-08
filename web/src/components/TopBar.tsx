@@ -1,9 +1,11 @@
 import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Play, Pause, Zap, Clock, Activity, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Play, Pause, Zap, Clock, ShieldCheck, ShieldAlert, LogOut, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useLiveEvents } from '@/hooks/useSSE';
 import { cn } from '@/lib/utils';
+import BrandMark from '@/components/BrandMark';
+import { getUser, logout } from '@/lib/auth';
 
 const SPEEDS = [1, 2, 5, 10];
 
@@ -57,7 +59,7 @@ export default function TopBar() {
   return (
     <header className="bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-4 shrink-0">
       <div className="flex items-center gap-2 font-semibold text-teal-700 text-lg">
-        <Activity className="w-5 h-5" />
+        <BrandMark className="h-8 w-8 drop-shadow-sm" />
         <span>MedBalance-Q</span>
       </div>
 
@@ -101,11 +103,11 @@ export default function TopBar() {
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-2 max-w-md overflow-hidden">
+      <div className="flex items-center gap-2 max-w-md overflow-x-auto">
         <Zap className="w-4 h-4 text-amber-500 shrink-0" />
         <div className="flex gap-1.5 overflow-x-auto text-xs">
           {displayEvents.length === 0 && (
-            <span className="text-slate-400 italic">No events yet</span>
+            <span className="text-slate-500 italic">No events yet</span>
           )}
           {displayEvents.map(e => (
             <span
@@ -127,11 +129,12 @@ export default function TopBar() {
       </div>
 
       <AuditBadge auditStatus={auditStatus} />
+      <UserBadge />
     </header>
   );
 }
 
-function AuditBadge({ auditStatus }: { auditStatus?: { ok: boolean; entries: number; broken_at?: number | null } }) {
+function AuditBadge({ auditStatus }: { auditStatus?: { ok: boolean; entries: number; first_bad_seq?: number | null } }) {
   const queryClient = useQueryClient();
   const [adminOpen, setAdminOpen] = useState(false);
   const [confirmTamper, setConfirmTamper] = useState(false);
@@ -188,14 +191,14 @@ function AuditBadge({ auditStatus }: { auditStatus?: { ok: boolean; entries: num
         <span>
           {auditStatus?.ok
             ? `Ledger verified ✓ ${auditStatus.entries}`
-            : `Tampered at #${auditStatus?.broken_at ?? '?'}`
+            : `Tampered at #${auditStatus?.first_bad_seq ?? '?'}`
           }
         </span>
       </button>
 
       {adminOpen && (
         <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-50">
-          <div className="px-3 py-1.5 text-xs text-slate-400 font-medium">Admin Demo</div>
+          <div className="px-3 py-1.5 text-xs text-slate-500 font-medium">Admin Demo</div>
 
           {!confirmTamper ? (
             <button
@@ -236,13 +239,34 @@ function AuditBadge({ auditStatus }: { auditStatus?: { ok: boolean; entries: num
           <div className="border-t border-slate-100 mt-1 pt-1">
             <button
               onClick={() => { setAdminOpen(false); setConfirmTamper(false); }}
-              className="w-full text-left px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-50"
+              className="w-full text-left px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
             >
               Close
             </button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function UserBadge() {
+  const user = getUser();
+  if (!user) return null;
+  return (
+    <div className="flex items-center gap-2 ml-2">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+        <User className="w-3.5 h-3.5 text-slate-500" />
+        <span className="font-medium text-slate-700">{user.name}</span>
+        <span className="text-slate-400">({user.role})</span>
+      </div>
+      <button
+        onClick={logout}
+        className="p-1.5 rounded hover:bg-slate-100 transition-colors"
+        title="Sign out"
+      >
+        <LogOut className="w-4 h-4 text-slate-500" />
+      </button>
     </div>
   );
 }

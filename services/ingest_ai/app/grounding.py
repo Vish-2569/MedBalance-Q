@@ -23,8 +23,8 @@ _index: dict[str, tuple[str, str]] | None = None
 
 def _find_drugs_yaml() -> Path | None:
     candidates = [
-        Path(__file__).resolve().parents[3] / "data" / "seed" / "drugs.yaml",
-        Path("/app/data/seed/drugs.yaml"),
+        parent / "data" / "seed" / "drugs.yaml"
+        for parent in Path(__file__).resolve().parents
     ]
     for p in candidates:
         if p.exists():

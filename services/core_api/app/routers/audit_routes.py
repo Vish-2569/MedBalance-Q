@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from medbal_common.db import session_scope
 from medbal_common import audit
+from medbal_common.auth import CurrentUser, require_role
 
 from ..queries import get_audit_entries, tamper_audit_row, restore_audit_row
 
@@ -36,7 +37,10 @@ class TamperRequest(BaseModel):
 
 
 @router.post("/admin/tamper-demo")
-async def tamper_demo(body: TamperRequest | None = None):
+async def tamper_demo(
+    body: TamperRequest | None = None,
+    user: CurrentUser = Depends(require_role("admin")),
+):
     """Tamper with an audit row for demonstration purposes.
     Modifies the payload of an audit entry to break the hash chain."""
     with session_scope() as s:
@@ -65,7 +69,10 @@ class RestoreRequest(BaseModel):
 
 
 @router.post("/admin/restore-demo")
-async def restore_demo(body: RestoreRequest | None = None):
+async def restore_demo(
+    body: RestoreRequest | None = None,
+    user: CurrentUser = Depends(require_role("admin")),
+):
     """Restore a previously tampered audit row."""
     target_seq = body.seq if body and body.seq else None
 

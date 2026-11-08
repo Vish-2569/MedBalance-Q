@@ -153,6 +153,18 @@ def test_tool_unknown():
     assert "error" in result
 
 
+def test_tool_can_use_demo_fixtures_for_an_explicit_fallback():
+    result = asyncio.get_event_loop().run_until_complete(
+        execute_tool(
+            "get_stock_position",
+            {"facility": "H1", "drug": "INSUL"},
+            use_fixtures=True,
+        )
+    )
+    assert result["facility_id"] == "H1"
+    assert result["effective_stock"] == 10
+
+
 # ── Copilot agent (FakeProvider, no tool calls) ───────────────────
 
 def test_copilot_basic_response():
@@ -332,7 +344,7 @@ def test_copilot_firewall_blocks_bad_number():
     assert "could not be verified" in answer["text"]
 
 
-def test_copilot_reports_provider_quota_errors():
+def test_copilot_uses_grounded_fallback_when_provider_quota_is_exhausted():
     class QuotaLimitedProvider(FakeProvider):
         def complete(self, *args: Any, **kwargs: Any) -> LLMResult:
             raise RuntimeError("429 RESOURCE_EXHAUSTED: quota exceeded")
@@ -344,13 +356,43 @@ def test_copilot_reports_provider_quota_errors():
     events = []
 
     async def collect():
-        async for event in session.chat(None, "Why was this transfer rejected?"):
+        async for event in session.chat(None, "What is the stock position of insulin at H1?"):
             events.append(event)
 
     asyncio.get_event_loop().run_until_complete(collect())
 
-    error = next(event for event in events if event["type"] == "error")
-    assert "Gemini API quota is exhausted" in error["text"]
+    answer = next(event for event in events if event["type"] == "answer")
+    tool_call = next(event for event in events if event["type"] == "tool_call")
+    tool_result = next(event for event in events if event["type"] == "tool_result")
+    assert tool_call["name"] == "get_stock_position"
+    assert tool_result["result"]["effective_stock"] == 10
+    assert "Demo fallback" in answer["text"]
+    assert "H1 / INSUL" in answer["text"]
+    assert "effective stock 10" in answer["text"]
+
+
+def test_copilot_explains_why_not_using_tool_data_when_provider_is_unavailable():
+    class UnavailableProvider(FakeProvider):
+        def complete(self, *args: Any, **kwargs: Any) -> LLMResult:
+            raise RuntimeError("provider unavailable")
+
+    session = CopilotSession(LLMService(
+        provider=UnavailableProvider(),
+        cache=LLMCache(redis_client=None),
+    ))
+    events = []
+
+    async def collect():
+        async for event in session.chat(None, "Why didn't Hesaraghatta get insulin?"):
+            events.append(event)
+
+    asyncio.get_event_loop().run_until_complete(collect())
+
+    tool_call = next(event for event in events if event["type"] == "tool_call")
+    answer = next(event for event in events if event["type"] == "answer")
+    assert tool_call["name"] == "why_not"
+    assert tool_call["args"] == {"facility": "H3", "drug": "INSUL"}
+    assert "no cold storage" in answer["text"]
 
 
 # ── Helper functions ──────────────────────────────────────────────

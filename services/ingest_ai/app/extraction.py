@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import calendar
 from datetime import date, timedelta
 from typing import Any
 
@@ -45,6 +46,26 @@ _UNIT_ALIASES: dict[str, str] = {
 }
 
 _STRIP_MULTIPLIER = 10
+_QUANTITY_RE = re.compile(
+    r"(?<![\w/])(?P<qty>\d[\d,]*)\s*(?P<unit>"
+    r"vials?|ampoules?|amps?|doses?|tablets?|tabs?|strips?|"
+    r"capsules?|caps?|sachets?|packets?|pkts?|bottles?|ml)\b",
+    re.IGNORECASE,
+)
+_BATCH_RE = re.compile(
+    r"\bbatch\s*(?:no\.?\s*)?[:#=-]?\s*([A-Z0-9][A-Z0-9/_-]*)",
+    re.IGNORECASE,
+)
+_EXPIRY_RE = re.compile(
+    r"\bexp(?:iry)?\.?\s*[:=#-]?\s*"
+    r"(\d{4}-\d{2}-\d{2}|"
+    r"\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|"
+    r"\d{1,2}[.-][A-Za-z]{3}[.-]\d{2,4}|"
+    r"\d{1,2}[.-]\d{1,2}[.-]\d{2,4}|"
+    r"\d{1,2}/\d{4}|\d{1,2}[/-]\d{1,2}|"
+    r"[A-Za-z]{3,9}\s+\d{2,4})",
+    re.IGNORECASE,
+)
 
 
 def scan_text_for_mentions(raw_text: str) -> list[dict]:
@@ -187,6 +208,35 @@ def _resolve_date(raw: str | None, report_dt: date | None) -> str | None:
             return f"{year}-{month:02d}-01"
         return None
 
+    month_year = re.match(r"^([A-Za-z]{3,9})\s+(\d{2,4})$", raw)
+    if month_year:
+        month = _month_number(month_year.group(1))
+        year = _full_year(month_year.group(2))
+        if month and year:
+            return f"{year:04d}-{month:02d}-01"
+
+    day_month_year = re.match(
+        r"^(\d{1,2})[-. ]([A-Za-z]{3,9})[-. ](\d{2,4})$", raw
+    )
+    if day_month_year:
+        day = int(day_month_year.group(1))
+        month = _month_number(day_month_year.group(2))
+        year = _full_year(day_month_year.group(3))
+        if month and year:
+            try:
+                return date(year, month, day).isoformat()
+            except ValueError:
+                return None
+
+    full_date = re.match(r"^(\d{1,2})[/. -](\d{1,2})[/. -](\d{2,4})$", raw)
+    if full_date:
+        day, month, year = map(int, full_date.groups())
+        year = _expand_year(year)
+        try:
+            return date(year, month, day).isoformat()
+        except ValueError:
+            return None
+
     dd_mm = re.match(r"^(\d{1,2})/(\d{1,2})$", raw)
     if dd_mm and report_dt:
         day, month = int(dd_mm.group(1)), int(dd_mm.group(2))
@@ -209,6 +259,25 @@ def _parse_date_safe(d: str | None) -> date | None:
         return date.fromisoformat(d[:10])
     except (ValueError, TypeError):
         return None
+
+
+def _expand_year(year: int) -> int:
+    return 2000 + year if year < 100 else year
+
+
+def _full_year(raw: str) -> int | None:
+    try:
+        return _expand_year(int(raw))
+    except ValueError:
+        return None
+
+
+def _month_number(raw: str) -> int | None:
+    normalized = raw.strip().lower()[:3]
+    return next(
+        (month for month in range(1, 13) if calendar.month_abbr[month].lower() == normalized),
+        None,
+    )
 
 
 def _normalize_unit(raw: str | None) -> tuple[str | None, int]:
@@ -240,7 +309,7 @@ async def extract_from_text(
     *,
     genai_url: str = GENAI_URL_DEFAULT,
 ) -> list[ExtractionItem]:
-    """Full extraction pipeline: scan → LLM → validate → ground."""
+    """Use GenAI extraction, with a grounded parser fallback when unavailable."""
     candidates = scan_text_for_mentions(raw_text)
     if not candidates:
         log.info("no_candidates_found", facility=facility_code)
@@ -250,13 +319,72 @@ async def extract_from_text(
         raw_text, report_date, facility_code, candidates, genai_url=genai_url,
     )
     if llm_output is None:
-        log.warning("extraction_skipped", facility=facility_code, reason="llm_failed")
-        return []
+        log.warning("deterministic_extraction_fallback", facility=facility_code, reason="llm_failed")
+        return _extract_deterministic(raw_text, candidates, report_date)
 
     raw_items = llm_output.get("items", [])
     if not raw_items:
-        return []
+        log.warning("deterministic_extraction_fallback", facility=facility_code, reason="llm_empty")
+        return _extract_deterministic(raw_text, candidates, report_date)
 
     items = validate_extraction(raw_items, candidates, report_date)
+    ground_drugs_batch(items)
+    return items
+
+
+def _extract_deterministic(
+    raw_text: str,
+    candidates: list[dict],
+    report_date: str,
+) -> list[ExtractionItem]:
+    """Extract explicit quantities and lot details without inventing missing values."""
+    items: list[ExtractionItem] = []
+    seen: set[tuple[str, str]] = set()
+    allowed_codes = {candidate["drug_code"] for candidate in candidates}
+
+    for line in raw_text.splitlines():
+        line_candidates = [
+            candidate for candidate in scan_text_for_mentions(line)
+            if candidate["drug_code"] in allowed_codes and candidate["score"] >= 85
+        ]
+        if not line_candidates:
+            continue
+
+        quantity_matches = list(_QUANTITY_RE.finditer(line))
+        quantity_match = quantity_matches[-1] if quantity_matches else None
+        quantity: int | None = None
+        unit: str | None = None
+        flags: list[str] = []
+        if quantity_match:
+            raw_quantity = int(quantity_match.group("qty").replace(",", ""))
+            unit, multiplier = _normalize_unit(quantity_match.group("unit"))
+            quantity = raw_quantity * multiplier
+            if unit is None:
+                flags.append("unknown_unit")
+
+        batch_match = _BATCH_RE.search(line)
+        batch_no = batch_match.group(1).rstrip(".,;") if batch_match else None
+        expiry_match = _EXPIRY_RE.search(line)
+        expiry = _resolve_date(expiry_match.group(1), _parse_date_safe(report_date)) if expiry_match else None
+
+        for candidate in line_candidates:
+            drug_code = candidate["drug_code"]
+            identity = (drug_code, line.strip())
+            if identity in seen:
+                continue
+            seen.add(identity)
+
+            items.append(ExtractionItem(
+                drug_name_raw=line.strip(),
+                drug_code=drug_code,
+                batch_no=batch_no,
+                expiry=expiry,
+                qty=quantity,
+                unit=unit,
+                confidence=0.78,
+                flags=list(flags),
+                extraction_method="deterministic_fallback",
+            ))
+
     ground_drugs_batch(items)
     return items

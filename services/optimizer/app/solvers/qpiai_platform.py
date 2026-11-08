@@ -26,15 +26,14 @@ class QpiAIOptPlatform:
     ) -> SolveResult:
         t0 = time.perf_counter()
         try:
-            from qpiai_opt.opt_solvers.local import Client, QUBOProblem
+            from qpiai_opt.opt_solvers.qubo.client import QUBOSolver, QUBOProblem
 
             if not settings.has_qpiai_opt():
                 raise RuntimeError("QPIAI_OPT_URL or QPIAI_OPT_TOKEN not set")
 
-            client = Client(
+            solver = QUBOSolver(
                 api_key=settings.QPIAI_OPT_TOKEN,
-                base_url=settings.QPIAI_OPT_URL,
-                timeout=timeout,
+                url=settings.QPIAI_OPT_URL,
             )
 
             problem = QUBOProblem(
@@ -47,12 +46,7 @@ class QpiAIOptPlatform:
                 qubo_dict=Q,
             )
 
-            created = client.create_problem(problem.model_dump(), timeout=timeout)
-            submission = client.submit_job(created.id, timeout=timeout)
-            job = client.wait_for_job(
-                submission.job_id, timeout=timeout, poll_interval=1.0,
-            )
-            result = client.extract_result(job, timeout=timeout)
+            result = solver.solve(problem, timeout=timeout, poll_interval=1.0)
 
             x = _parse_assignment(result.variable_assignment, n_vars)
             elapsed = (time.perf_counter() - t0) * 1000
@@ -63,8 +57,8 @@ class QpiAIOptPlatform:
                 time_ms=elapsed,
                 n_vars=n_vars,
                 meta={
-                    "job_id": result.job_id,
-                    "solver_time_s": result.solver_time_s,
+                    "job_id": getattr(result, "job_id", None),
+                    "solver_time_s": getattr(result, "solver_time_s", None),
                     "objective": result.objective,
                 },
             )
@@ -87,7 +81,7 @@ def _parse_assignment(
     x: dict[int, int] = {}
     for k, v in va.items():
         try:
-            idx = int(k.replace("x", ""))
+            idx = int(k.replace("x", "").replace("[", "").replace("]", ""))
         except (ValueError, AttributeError):
             idx = int(k)
         x[idx] = int(round(v))

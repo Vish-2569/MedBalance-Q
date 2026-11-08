@@ -7,6 +7,69 @@ info:
     audit log and SSE event stream.
 
 paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate and receive a JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      operationId: getMe
+      summary: Get current authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "401":
+          description: Not authenticated
+
+  /auth/users:
+    get:
+      operationId: listAuthUsers
+      summary: List available demo user accounts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    role:
+                      type: string
+                    name:
+                      type: string
+
   /facilities:
     get:
       operationId: listFacilities
@@ -152,7 +215,10 @@ paths:
   /plans:
     post:
       operationId: persistPlan
-      summary: Persist a plan run with its orders and regret
+      summary: Persist a plan run with its orders and regret (requires authentication)
+      security:
+        - bearerAuth: []
+        - serviceToken: []
       requestBody:
         required: true
         content:
@@ -259,7 +325,9 @@ paths:
   /orders/{id}/approve:
     post:
       operationId: approveOrder
-      summary: Approve a proposed order
+      summary: Approve a proposed order (requires district_officer or admin role)
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -277,7 +345,9 @@ paths:
   /orders/{id}/reject:
     post:
       operationId: rejectOrder
-      summary: Reject a proposed order
+      summary: Reject a proposed order (requires district_officer or admin role)
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -305,7 +375,9 @@ paths:
   /custody/scan:
     post:
       operationId: scanCustody
-      summary: Record a custody event (scan)
+      summary: Record a custody event (requires pharmacist, district_officer, or admin role)
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -421,6 +493,42 @@ paths:
                     items:
                       $ref: "#/components/schemas/AuditEntry"
 
+  /admin/tamper-demo:
+    post:
+      operationId: tamperDemo
+      summary: Tamper audit chain for demo (requires admin role)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tampered]
+                properties:
+                  tampered:
+                    type: boolean
+
+  /admin/restore-demo:
+    post:
+      operationId: restoreDemo
+      summary: Restore audit chain for demo (requires admin role)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [restored]
+                properties:
+                  restored:
+                    type: boolean
+
   /health:
     get:
       operationId: health
@@ -440,7 +548,43 @@ paths:
                     type: string
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    serviceToken:
+      type: apiKey
+      in: header
+      name: X-Service-Token
+      description: Internal service-to-service token (equals JWT_SECRET)
+
   schemas:
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, role, name, expires_in]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+        role:
+          type: string
+        name:
+          type: string
+        expires_in:
+          type: integer
+
+    CurrentUser:
+      type: object
+      required: [user_id, role, name]
+      properties:
+        user_id:
+          type: string
+        role:
+          type: string
+        name:
+          type: string
     Facility:
       type: object
       required: [id, name, type, lat, lon, cold_storage]
@@ -574,7 +718,7 @@ components:
           type: number
         status:
           type: string
-          enum: [proposed, approved, rejected, dispatched, in_transit, delivered, cancelled]
+          enum: [proposed, approved, rejected, dispatched, in_transit, received, consumed, delivered, cancelled]
         temperature_req:
           type: string
           enum: [ambient, cold_chain]
@@ -645,7 +789,7 @@ components:
 
     AuditVerify:
       type: object
-      required: [ok, entries, first_bad_seq]
+      required: [ok, entries]
       properties:
         ok:
           type: boolean
@@ -653,6 +797,7 @@ components:
           type: integer
         first_bad_seq:
           type: ["integer", "null"]
+          description: Sequence number of the first broken hash-chain entry, null if ok
 
     PlanRun:
       type: object

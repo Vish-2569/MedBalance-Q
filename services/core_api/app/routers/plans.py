@@ -5,13 +5,14 @@ import hashlib
 import hmac
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from medbal_common.db import session_scope
 from medbal_common.clock import now
 from medbal_common.settings import settings
 from medbal_common import audit, bus
+from medbal_common.auth import CurrentUser, get_current_user
 
 from ..queries import (
     insert_plan_run,
@@ -42,7 +43,7 @@ class _PlanPayload:
 
 
 @router.post("/plans", status_code=201)
-async def persist_plan(payload: dict):
+async def persist_plan(payload: dict, user: CurrentUser = Depends(get_current_user)):
     p = _PlanPayload(payload)
     plan_id = p.plan["id"]
     ts = now()

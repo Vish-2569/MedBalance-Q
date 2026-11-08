@@ -10,6 +10,9 @@ from .port import Sample, SolveResult
 
 log = get_logger("solver.qpiai_local")
 
+MAX_LOCAL_NUM_READS = 16
+MAX_LOCAL_NUM_SWEEPS = 5000
+
 
 class QpiAIOptLocal:
     tier_name = "qpiai-local"
@@ -49,9 +52,8 @@ class QpiAIOptLocal:
             result = provider.solve(
                 problem,
                 problem_class="QUBO",
-                time_limit=timeout,
-                num_reads=200,
-                num_sweeps=1000,
+                num_reads=MAX_LOCAL_NUM_READS,
+                num_sweeps=min(1000, MAX_LOCAL_NUM_SWEEPS),
             )
 
             x = _parse_assignment(result.variable_assignment, n_vars)
@@ -87,7 +89,7 @@ def _parse_assignment(
     x: dict[int, int] = {}
     for k, v in va.items():
         try:
-            idx = int(k.replace("x", ""))
+            idx = int(k.replace("x", "").replace("[", "").replace("]", ""))
         except (ValueError, AttributeError):
             idx = int(k)
         x[idx] = int(round(v))

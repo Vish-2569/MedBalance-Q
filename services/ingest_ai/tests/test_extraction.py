@@ -276,8 +276,8 @@ class TestFullPipeline:
         assert insulin.expiry == "2027-03-15"
 
     @pytest.mark.asyncio
-    async def test_pipeline_genai_failure_returns_empty(self):
-        text = "ಇನ್ಸುಲಿನ್ 40IU - 20 vials"
+    async def test_pipeline_genai_failure_uses_deterministic_fallback(self):
+        text = "ಇನ್ಸುಲಿನ್ 40IU - 20 vials, batch INS-001, exp 15/03"
 
         with patch("app.extraction.httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
@@ -290,7 +290,56 @@ class TestFullPipeline:
                 text, "2026-10-01", "H3", genai_url="http://fake:8003",
             )
 
-        assert items == []
+        assert len(items) == 1
+        assert items[0].drug_code == "INSULIN"
+        assert items[0].qty == 20
+        assert items[0].batch_no == "INS-001"
+        assert items[0].expiry == "2027-03-15"
+        assert items[0].extraction_method == "deterministic_fallback"
+
+    @pytest.mark.asyncio
+    async def test_pipeline_extracts_messy_report_without_genai(self):
+        text = (
+            "Stock register dated 2026-11-07\n"
+            "inzulin - 10000 vial batch BAD-001 exp 12/1999\n"
+            "amoxy 500 cap - 7 strip batch B-AMX-001 exp 15/03\n"
+        )
+
+        with patch("app.extraction.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.post.side_effect = httpx.ConnectError("quota exhausted")
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = mock_client
+
+            items = await extract_from_text(
+                text, "2026-11-07", "H4", genai_url="http://fake:8003",
+            )
+
+        codes = {item.drug_code for item in items}
+        assert "INSULIN" in codes
+        assert "AMOX" in codes
+        insulin = next(item for item in items if item.drug_code == "INSULIN")
+        assert insulin.qty == 10000
+        assert insulin.expiry == "1999-12-01"
+
+    @pytest.mark.asyncio
+    async def test_pipeline_extracts_iso_expiry_without_genai(self):
+        text = "insulin 20 vials batch INS-001 exp 2028-03-22"
+
+        with patch("app.extraction.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.post.side_effect = httpx.ConnectError("quota exhausted")
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = mock_client
+
+            items = await extract_from_text(
+                text, "2027-09-24", "H3", genai_url="http://fake:8003",
+            )
+
+        assert len(items) == 1
+        assert items[0].expiry == "2028-03-22"
 
     @pytest.mark.asyncio
     async def test_candidates_constrain_llm(self):

@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Brain, Server, Zap, Shield, AlertCircle, Activity, Info,
-  Clock, Database, Loader2, RefreshCw,
+  Clock, Database, Loader2, RefreshCw, HelpCircle, Sparkles, FileCheck,
 } from 'lucide-react';
 import { aiHealth as demoAIHealth } from '@/fixtures';
 import { api } from '@/lib/api';
 import { cn, formatPct } from '@/lib/utils';
 import type { AIHealthData } from '@/types/domain';
+
+const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === '1';
 
 export default function AIHealthPage() {
   const { data: health, isLoading, error } = useQuery<AIHealthData>({
@@ -14,10 +17,11 @@ export default function AIHealthPage() {
     queryFn: api.getAIHealth,
     refetchInterval: 15_000,
   });
+  const [showGuide, setShowGuide] = useState(true);
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-slate-400">
+      <div className="flex-1 flex items-center justify-center text-slate-500">
         <Loader2 className="w-6 h-6 animate-spin" />
       </div>
     );
@@ -25,33 +29,114 @@ export default function AIHealthPage() {
 
   if (error || !health) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3">
-        <AlertCircle className="w-8 h-8" />
-        <p>Failed to load AI Health data.</p>
+      <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-3 py-12">
+        <Brain className="w-12 h-12 text-slate-300" />
+        <p className="text-base font-medium text-slate-700">AI Health Unavailable</p>
+        <p className="text-sm max-w-md text-center">
+          Could not load AI Health data. Make sure the genai service is running and accessible.
+        </p>
       </div>
     );
   }
 
-  const showingDemoMetrics = health.total_calls === 0;
+  const showingDemoMetrics = USE_FIXTURES || health.total_calls === 0;
   const metrics = showingDemoMetrics ? demoAIHealth : health;
 
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-auto">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-800">AI Health</h1>
-        <span className={cn(
-          'text-xs px-3 py-1 rounded-full font-medium',
-          health.status === 'healthy' ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700',
-        )}>
-          {health.status.toUpperCase()}
-        </span>
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800">AI Health</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Monitors the GenAI gateway — LLM call statistics, prompt catalog, evaluation scores, and guardrail status.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            'text-xs px-3 py-1 rounded-full font-medium',
+            health.status === 'healthy' ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700',
+          )}>
+            {health.status.toUpperCase()}
+          </span>
+          <button
+            onClick={() => setShowGuide(g => !g)}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            {showGuide ? 'Hide Guide' : 'Show Guide'}
+          </button>
+        </div>
       </div>
+
+      {/* Guide panel */}
+      {showGuide && (
+        <div className="bg-gradient-to-r from-sky-50 to-indigo-50 rounded-xl border border-sky-200 p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center shrink-0 mt-0.5">
+              <Info className="w-5 h-5 text-sky-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-slate-800 text-sm mb-2">Understanding AI Health</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Brain className="w-4 h-4 text-teal-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-700">GenAI Gateway</span>
+                      <p className="text-xs text-slate-500">All AI features (report extraction, narration, copilot) go through a single gateway service. This page shows if it's working correctly.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Activity className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-700">Call Stats</span>
+                      <p className="text-xs text-slate-500">Total LLM calls, cache hit rate (reused responses save cost), latency (response time), schema failures (malformed AI output), and fallbacks (when AI fails and a template is used).</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-700">Prompt Catalog</span>
+                      <p className="text-xs text-slate-500">Lists all registered prompt templates with versions. Each AI feature uses a versioned prompt stored in prompts/*.yaml files.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-violet-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-700">Eval Scores</span>
+                      <p className="text-xs text-slate-500">Quality scores for AI outputs — how well extraction, narration, and other AI features perform against test cases. Higher is better.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Shield className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-700">Guardrails &amp; Firewall</span>
+                      <p className="text-xs text-slate-500">The narration firewall checks that AI-generated text matches the numeric facts it was given. If a mismatch is found, the AI text is replaced with a safe template.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 bg-amber-50/60 rounded-lg px-2 py-1.5 border border-amber-100">
+                    <FileCheck className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700">
+                      <strong>Golden Rule:</strong> "LLMs read and explain; deterministic code decides." The AI never decides feasibility or invents data — it only works with facts it's given.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showingDemoMetrics && (
         <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            No LLM calls were recorded in the last 24 hours. Showing illustrative demo metrics below; they are not live provider telemetry.
+            {USE_FIXTURES
+              ? 'Demo mode — metrics below are illustrative fixture values and are not live provider telemetry.'
+              : 'No LLM calls were recorded in the last 24 hours. Showing illustrative demo metrics below; they are not live provider telemetry.'}
           </p>
         </div>
       )}
@@ -62,7 +147,8 @@ export default function AIHealthPage() {
           <Brain className="w-5 h-5 text-teal-600" />
           <h3 className="font-semibold text-slate-700">GenAI Gateway</h3>
         </div>
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <p className="text-xs text-slate-400 mb-3">The LLM provider and models used by all AI features in the system.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <InfoRow label="Provider" value={health.provider} />
           <InfoRow label="Fast Model" value={health.model_fast} />
           <InfoRow label="Smart Model" value={health.model_smart} />
@@ -70,6 +156,7 @@ export default function AIHealthPage() {
       </div>
 
       {/* Stats cards */}
+      <p className="text-xs text-slate-400 -mb-2">Key metrics from the last 24 hours of AI gateway activity.</p>
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard
           icon={Activity}
@@ -124,6 +211,7 @@ export default function AIHealthPage() {
           <Zap className="w-5 h-5 text-amber-500" />
           <h3 className="font-semibold text-slate-700">Prompt Catalog</h3>
         </div>
+        <p className="text-xs text-slate-400 mb-3">Registered prompt templates used by AI features. Each prompt has a versioned YAML file with system instructions, user template, and JSON schema.</p>
         {metrics.prompts.length > 0 ? (
           <table className="w-full text-sm">
             <thead>
@@ -144,7 +232,7 @@ export default function AIHealthPage() {
             </tbody>
           </table>
         ) : (
-          <p className="text-sm text-slate-400 italic">
+          <p className="text-sm text-slate-500 italic">
             {health.prompts_loaded
               ? `${health.prompts_loaded} prompts loaded; prompt-level details are not exposed by the live API.`
               : 'Prompt-level details are not exposed by the live API.'}
@@ -158,9 +246,10 @@ export default function AIHealthPage() {
           <Server className="w-5 h-5 text-teal-600" />
           <h3 className="font-semibold text-slate-700">Eval Scores</h3>
           {showingDemoMetrics && (
-            <span className="text-xs px-2 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-200">offline / deterministic</span>
+            <span className="text-xs px-2 py-0.5 rounded bg-sky-50 text-sky-600 border border-sky-200">[Illustrative]</span>
           )}
         </div>
+        <p className="text-xs text-slate-400 mb-3">Quality scores measuring how well AI outputs match expected results. Green (≥90%) is excellent, amber (70–89%) is acceptable, red (&lt;70%) needs attention.</p>
         {metrics.eval_scores && Object.keys(metrics.eval_scores).length > 0 ? (
           <div className="space-y-3">
             {Object.entries(metrics.eval_scores).map(([key, score]) => (
@@ -187,18 +276,18 @@ export default function AIHealthPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-400 italic">Eval scores are not exposed by the live API.</p>
+          <p className="text-sm text-slate-500 italic">Eval scores are not exposed by the live API.</p>
         )}
       </div>
 
       {/* Golden rule reminder */}
       <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
         <div className="flex items-center gap-2 mb-2">
-          <Shield className="w-4 h-4 text-slate-400" />
+          <Shield className="w-4 h-4 text-slate-500" />
           <h3 className="text-sm font-semibold text-slate-600">Guardrails</h3>
         </div>
         <p className="text-sm text-slate-500">LLMs read and explain; deterministic code decides.</p>
-        <p className="text-xs text-slate-400 mt-1">Structured output + Pydantic validation + 2 retries + template fallback</p>
+        <p className="text-xs text-slate-500 mt-1">Structured output + Pydantic validation + 2 retries + template fallback. Every LLM-produced record stores model, prompt ID, version, and confidence for full traceability.</p>
       </div>
     </div>
   );
@@ -210,13 +299,13 @@ function StatCard({ icon: Icon, label, value, color, sub, demo }: {
   return (
     <div className={cn('bg-white rounded-lg border p-3', demo ? 'border-sky-200 bg-sky-50/30' : 'border-slate-200')}>
       <div className="flex items-center gap-2 mb-1">
-        <Icon className="w-4 h-4 text-slate-400" />
+        <Icon className="w-4 h-4 text-slate-500" />
         <span className="text-xs text-slate-500 font-medium">{label}</span>
       </div>
       <p className={cn('text-2xl font-bold', color ?? 'text-slate-800')}>
         {value}{demo && <span className="text-xs font-normal text-sky-500 ml-1">(demo)</span>}
       </p>
-      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
     </div>
   );
 }

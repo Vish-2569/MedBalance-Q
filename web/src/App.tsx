@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import TopBar from '@/components/TopBar';
@@ -14,10 +15,12 @@ import AIHealthPage from '@/pages/AIHealthPage';
 import ScenariosPage from '@/pages/ScenariosPage';
 import OrderDetailPage from '@/pages/OrderDetailPage';
 import ScanPage from '@/pages/ScanPage';
+import LoginPage from '@/pages/LoginPage';
+import { isAuthenticated } from '@/lib/auth';
 
 function SimDataBanner() {
   return (
-    <div className="shrink-0 bg-slate-100 border-t border-slate-200 px-3 py-1 text-center text-[11px] text-slate-400 tracking-wide select-none">
+    <div className="shrink-0 bg-slate-100 border-t border-slate-200 px-3 py-1 text-center text-[11px] text-slate-500 tracking-wide select-none">
       Simulated district data — not connected to live systems
     </div>
   );
@@ -36,8 +39,16 @@ function ExcursionBanner() {
   );
 }
 
+const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === '1';
+
 export default function App() {
+  const [authed, setAuthed] = useState(() => USE_FIXTURES || isAuthenticated());
+
   useSSEConnection();
+
+  if (!authed) {
+    return <LoginPage onLogin={() => setAuthed(true)} />;
+  }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">

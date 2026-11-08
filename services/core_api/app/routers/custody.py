@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timedelta
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -16,6 +16,7 @@ from medbal_common.clock import now
 from medbal_common.settings import settings
 from medbal_common import audit, bus
 from medbal_common.logging import get_logger
+from medbal_common.auth import CurrentUser, require_role
 
 from ..queries import (
     get_custody_events,
@@ -91,7 +92,7 @@ async def _call_sim_hospital(url: str, payload: dict) -> dict | None:
     return None
 
 
-async def _request_genai_summary(deviation: dict) -> str:
+async def _request_genai_summary(deviation: list[dict]) -> str:
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
@@ -126,7 +127,10 @@ async def custody_chain(order_id: str):
 
 
 @router.post("/custody/scan")
-async def scan_custody(req: ScanRequest):
+async def scan_custody(
+    req: ScanRequest,
+    user: CurrentUser = Depends(require_role("pharmacist", "district_officer", "admin")),
+):
     if req.event not in VALID_TRANSITIONS:
         raise HTTPException(400, f"Invalid event '{req.event}'. Must be one of: dispatch, receive, consume")
 
@@ -215,7 +219,7 @@ async def scan_custody(req: ScanRequest):
         event_record = {
             "order_id": order_id,
             "event_type": req.event,
-            "actor": req.actor,
+            "actor": user.user_id,
             "qty": scan_qty,
             "timestamp": ts.isoformat(),
             "location": order.get("dst_facility_id") if req.event in ("receive", "consume") else order.get("src_facility_id"),
@@ -226,7 +230,7 @@ async def scan_custody(req: ScanRequest):
         event_id = insert_custody_event(s, event_record)
 
         audit.append(
-            s, req.actor, f"custody.{req.event}", "order", order_id,
+            s, user.user_id, f"custody.{req.event}", "order", order_id,
             {"event": req.event, "qty": scan_qty, "status": new_status,
              "deviations": len(deviations)},
         )
@@ -267,7 +271,7 @@ async def scan_custody(req: ScanRequest):
         "order_id": order_id,
         "event": req.event,
         "qty": scan_qty,
-        "actor": req.actor,
+        "actor": user.user_id,
         "deviations": deviations,
     })
 

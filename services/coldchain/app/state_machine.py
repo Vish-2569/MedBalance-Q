@@ -42,6 +42,8 @@ class DeviceStateMachine:
         self.consecutive_good: int = 0
         self.last_temp: float | None = None
         self.last_seen: str | None = None
+        self.last_battery: int = 100
+        self.temp_history: list[float] = []
         self.excursion_since: str | None = None
         self._door_open_since: datetime | None = None
 
@@ -55,6 +57,11 @@ class DeviceStateMachine:
         """Process one telemetry reading; return transition events (if any)."""
         self.last_temp = temp_c
         self.last_seen = ts
+        self.last_battery = battery
+        if temp_c is not None:
+            self.temp_history.append(temp_c)
+            if len(self.temp_history) > 20:
+                self.temp_history = self.temp_history[-20:]
         events: list[dict] = []
 
         # --- door-open logic ---
@@ -140,8 +147,10 @@ class DeviceStateMachine:
             "facility_id": self.facility_id,
             "state": self.state,
             "temperature_c": self.last_temp,
+            "battery_pct": self.last_battery,
             "last_seen": self.last_seen,
             "alert": self.state == DeviceState.EXCURSION,
+            "temperature_history": list(self.temp_history),
         }
 
 

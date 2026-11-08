@@ -118,8 +118,8 @@ paths:
               properties:
                 action:
                   type: string
-                  enum: [accept, fix, reject]
-                fix:
+                  enum: [accept, correct, reject]
+                corrected_values:
                   type: ["object", "null"]
       responses:
         "200":
@@ -127,11 +127,27 @@ paths:
           content:
             application/json:
               schema:
+                $ref: "#/components/schemas/ReviewItem"
+
+  /demo/seed:
+    post:
+      operationId: seedDemoReports
+      summary: Seed demo ingestion data
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
                 type: object
-                required: [status]
+                required: [triggered, reports]
                 properties:
-                  status:
-                    type: string
+                  triggered:
+                    type: integer
+                  reports:
+                    type: array
+                    items:
+                      type: object
 
   /health:
     get:
@@ -155,8 +171,10 @@ components:
   schemas:
     StockReport:
       type: object
-      required: [facility_code, reported_at, format, items]
+      required: [id, facility_code, reported_at, format, items]
       properties:
+        id:
+          type: string
         facility_code:
           type: string
         reported_at:
@@ -170,6 +188,24 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ExtractionItem"
+        extraction_method:
+          type: ["string", "null"]
+          enum: [genai, deterministic_fallback, null]
+        extraction_warning:
+          type: ["string", "null"]
+        is_demo:
+          type: boolean
+        gate_error:
+          type: ["string", "null"]
+        gate:
+          type: ["object", "null"]
+          properties:
+            clean:
+              type: integer
+            flagged:
+              type: integer
+            upserted:
+              type: integer
 
     ExtractionItem:
       type: object

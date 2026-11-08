@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     QPIAI_TIMEOUT_S: int = 20
 
     QR_HMAC_SECRET: str = ""
+    JWT_SECRET: str = ""
+    JWT_EXPIRE_MINUTES: int = 480
     SIM_SEED: int = 42
 
     def require_hmac_secret(self) -> str:
@@ -41,6 +43,15 @@ class Settings(BaseSettings):
                 "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
             )
         return self.QR_HMAC_SECRET
+
+    def require_jwt_secret(self) -> str:
+        if not self.JWT_SECRET:
+            raise RuntimeError(
+                "JWT_SECRET is not set. "
+                "Set it in .env or as an environment variable. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
+        return self.JWT_SECRET
     SIM_DAY_SECONDS: int = 30
     SIM_START_DATE: str = "2026-11-01"
 
@@ -63,6 +74,7 @@ class Settings(BaseSettings):
             "QPIAI_OPT_URL": "set" if self._is_set(self.QPIAI_OPT_URL) else "missing",
             "QPIAI_OPT_TOKEN": "set" if self._is_set(self.QPIAI_OPT_TOKEN) else "missing",
             "QPIAI_QCLOUD_API_KEY": "set" if self.has_qcloud() else "missing",
+            "JWT_SECRET": "set" if self._is_set(self.JWT_SECRET) else "missing",
         }
 
 

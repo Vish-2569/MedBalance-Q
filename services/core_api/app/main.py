@@ -9,8 +9,9 @@ if settings.USE_FIXTURES:
 else:
     settings.require_hmac_secret()
     from .routers import master, lots, positions, snapshot, plans, orders
-    from .routers import provenance, audit_routes, custody, events
+    from .routers import provenance, audit_routes, custody, events, auth_routes
 
+    app.include_router(auth_routes.router)
     app.include_router(master.router)
     app.include_router(lots.router)
     app.include_router(positions.router)

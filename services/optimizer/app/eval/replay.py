@@ -992,7 +992,7 @@ def main():
     parser.add_argument("--seeds", type=int, default=20)
     parser.add_argument("--days", type=int, default=28)
     parser.add_argument("--policies", type=str, default="A,B,C,D,E")
-    parser.add_argument("--solver", type=str, default="local", help="Solver override for QUBO (local|chain)")
+    parser.add_argument("--solver", type=str, default="chain", help="Solver override for QUBO (local|chain)")
     parser.add_argument("--no-ablation", action="store_true")
     parser.add_argument("--out", type=str, default=None)
     args = parser.parse_args()

@@ -213,8 +213,29 @@ export interface StockReport {
   items: ReportItem[];
   anomalies: string[];
   raw_text?: string;
+  is_demo?: boolean;
+  extraction_method?: 'genai' | 'deterministic_fallback';
+  extraction_warning?: string;
+  gate_error?: string;
   model?: string;
   prompt_id?: string;
+}
+
+export interface DemoSeedResult {
+  triggered: number;
+  reports: {
+    id: string;
+    facility_code: string;
+    items: number;
+    extraction_method?: string;
+  }[];
+}
+
+export interface PullReportsResult {
+  triggered: number;
+  facilities: string[];
+  reports: { id: string; facility_code: string; items: number; extraction_method?: string }[];
+  errors: { facility_code: string; error: string }[];
 }
 
 export interface ReviewItem {
@@ -261,7 +282,7 @@ export interface CustodyEvent {
 export interface AuditVerify {
   ok: boolean;
   entries: number;
-  broken_at?: number | null;
+  first_bad_seq?: number | null;
 }
 
 export interface AIHealthData {
@@ -320,6 +341,8 @@ export interface CopilotMessage {
   content: string;
   tool_calls?: { name: string; args: Record<string, unknown>; result?: unknown }[];
   timestamp: number;
+  model?: string;
+  prompt_id?: string;
 }
 
 export interface ResultMetrics {
